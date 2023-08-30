@@ -53,7 +53,8 @@ import PlutusCore.Test
 import PlutusIR.Core.Type (progTerm)
 import PlutusIR.Test ()
 import PlutusPrelude
-import PlutusTx.Code (CompiledCode, CompiledCodeIn, getPir, getPirNoAnn, getPlcNoAnn, sizePlc)
+import PlutusTx.Code (CompiledCode, CompiledCodeIn, getPir, getPirNoAnn, getPlcNoAnn, sizePir,
+                      sizePlc)
 import UntypedPlutusCore qualified as UPLC
 import UntypedPlutusCore.Evaluation.Machine.Cek qualified as UPLC
 
@@ -72,7 +73,7 @@ data SizeTest (a :: Type) = SizeTest (CompiledCode a) Integer
 
 instance (Typeable a) => IsTest (SizeTest a) where
   run _ (SizeTest cc limit) _ = do
-    let estimate = sizePlc cc
+    let estimate = sizePir cc
     let diff = limit - estimate
     pure $ case signum diff of
       (-1) ->

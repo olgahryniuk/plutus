@@ -5,6 +5,7 @@ module PlutusIR.Analysis.Size
     , tyVarDeclSize
     , termSize
     , varDeclSize
+    , programSize
     ) where
 
 import PlutusPrelude
@@ -23,3 +24,7 @@ termSize term = fold
     , term ^. termSubtypes . to typeSize
     , term ^. termSubterms . to termSize
     ]
+
+-- | Count the number of AST nodes in a program.
+programSize :: Program tyname name uni fun ann -> Size
+programSize (Program _ _ t) = termSize t

@@ -464,6 +464,7 @@ library plutus-ir
   exposed-modules:
     PlutusIR
     PlutusIR.Analysis.RetainedSize
+    PlutusIR.Analysis.Size
     PlutusIR.Check.Uniques
     PlutusIR.Compiler
     PlutusIR.Compiler.Datatype
@@ -511,7 +512,6 @@ library plutus-ir
   other-modules:
     PlutusIR.Analysis.Definitions
     PlutusIR.Analysis.Dependencies
-    PlutusIR.Analysis.Size
     PlutusIR.Analysis.Usages
     PlutusIR.Compiler.Error
     PlutusIR.Compiler.Let

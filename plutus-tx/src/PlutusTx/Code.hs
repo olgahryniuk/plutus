@@ -25,6 +25,8 @@ import PlutusTx.Coverage
 import PlutusTx.Lift.Instances ()
 import UntypedPlutusCore qualified as UPLC
 -- We do not use qualified import because the whole module contains off-chain code
+import PlutusCore.Size qualified as PLC
+import PlutusIR.Analysis.Size qualified as PIR
 import PlutusPrelude
 import Prelude as Haskell
 
@@ -106,6 +108,13 @@ unsafeApplyCode fun arg = case applyCode fun arg of
 -- | The size of a 'CompiledCodeIn', in AST nodes.
 sizePlc :: (PLC.Closed uni, uni `PLC.Everywhere` Flat, Flat fun) => CompiledCodeIn uni fun a -> Integer
 sizePlc = UPLC.unSize . UPLC.programSize . getPlc
+
+-- | The size of a 'CompiledCodeIn', in AST nodes.
+sizePir :: (PLC.Closed uni, uni `PLC.Everywhere` Flat, Flat fun) => CompiledCodeIn uni fun a -> Integer
+sizePir p = case getPir p of
+    Just prog -> PLC.unSize $ PIR.programSize prog
+    Nothing   -> error "PIR does not exist"
+
 
 {- Note [Deserializing the AST]
 The types suggest that we can fail to deserialize the AST that we embedded in the program.
