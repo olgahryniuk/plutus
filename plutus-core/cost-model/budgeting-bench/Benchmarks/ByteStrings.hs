@@ -146,62 +146,8 @@ makeBasicByteStringBenchmarks gen =
 -}
 
 
-{-
-integerToByteString                : [ integer ] -> bytestring
-CPU: linear
-Mem: linear
-
-byteStringToInteger                : [ bytestring ] -> integer
-CPU: linear
-Mem: linear
-
-andByteString                      : [ bytestring, bytestring ] -> bytestring
-CPU: linear in max
-Mem: max
-
-iorByteString                      : [ bytestring, bytestring ] -> bytestring
-CPU: linear in max
-Mem: max
-
-xorByteString                      : [ bytestring, bytestring ] -> bytestring
-CPU: linear in max
-Mem: max
-
-complementByteString               : [ bytestring ] -> bytestring
-CPU: linear
-Mem: X
-
-We may need a ModelTwoArguments thing that actually involves both X and Y for
-some of these.
-
-shiftByteString                    : [ bytestring, integer ] -> bytestring
-Cpu: linear in X & Y
-Mem:  X+Y
-
-rotateByteString                   : [ bytestring, integer ] -> bytestring
-Cpu:  linear in X & Y
-Mem:  X
-
-popCountByteString                 : [ bytestring ] -> integer
-CPU: linear
-Mem: linear (but probably really const)
-
-testBitByteString                  : [ bytestring, integer ] -> bool
-CPU: linear
-Mem: linear (but probably really const)
-
-writeBitByteString                 : [ bytestring, integer, bool ] -> bytestring
-CPU: constant?
-Mem: X
-
-findFirstSetByteString             : [ bytestring ] -> integer
-Cpu: linear
-Mem:  linear (worst case)
--}
-
-
---This seems to flatten out suspiciously.  Failing for large numbers?
--- Could do with more data points here.
+--This seems to flatten out suspiciously.  I though it might be failing for
+-- large numbers, but it may just be that it's very fast anyway.
 benchIntegerToByteString :: Benchmark
 benchIntegerToByteString =
     bgroup (show name) $ fmap mkBM inputs
