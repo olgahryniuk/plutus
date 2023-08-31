@@ -78,6 +78,7 @@ import Data.ByteString.Unsafe qualified as BSUnsafe
 import Data.Either.Validation
 import Data.Map qualified as Map
 import Data.Set qualified as Set
+import GHC.Num.Integer qualified
 import PlutusIR.Compiler.Provenance (noProvenance, original)
 import Prettyprinter qualified as PP
 import System.IO (openTempFile)
@@ -386,7 +387,8 @@ compileMarkedExpr locStr codeTy origE = do
     let moduleNameStr =
             GHC.showSDocForUser flags GHC.emptyUnitState GHC.alwaysQualify (GHC.ppr moduleName)
     -- We need to do this out here, since it has to run in CoreM
-    nameInfo <- makePrimitiveNameInfo $ builtinNames ++ [''Bool, 'False, 'True, 'traceBool]
+    nameInfo <- makePrimitiveNameInfo $
+        builtinNames ++ [''Bool, 'False, 'True, 'traceBool, 'GHC.Num.Integer.integerNegate]
     modBreaks <- asks pcModuleModBreaks
     let coverage = CoverageOpts . Set.fromList $
                    [ l | _posCoverageAll opts, l <- [minBound .. maxBound]]
@@ -404,7 +406,7 @@ compileMarkedExpr locStr codeTy origE = do
             ccBlackholed = mempty,
             ccCurDef = Nothing,
             ccModBreaks = modBreaks,
-            ccBuiltinVer = def,
+            ccBuiltinSemanticsVariant = def,
             ccBuiltinCostModel = def,
             ccDebugTraceOn = _posDumpCompilationTrace opts
             }
@@ -500,7 +502,7 @@ runCompiler moduleName opts expr = do
                     (if plcVersion < PLC.plcVersion110
                         then PIR.ScottEncoding else PIR.SumsOfProducts)
                  -- TODO: ensure the same as the one used in the plugin
-                 & set PIR.ccBuiltinVer def
+                 & set PIR.ccBuiltinSemanticsVariant def
                  & set PIR.ccBuiltinCostModel def
         plcOpts = PLC.defaultCompilationOpts
             & set (PLC.coSimplifyOpts . UPLC.soMaxSimplifierIterations)

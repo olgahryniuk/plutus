@@ -20,7 +20,7 @@ import Hedgehog (MonadGen, Property)
 import Hedgehog qualified
 import Hedgehog.Gen qualified as Gen
 import Hedgehog.Range qualified as Range
-import PlutusCore.Test (TestNested, goldenUEval, testNested)
+import PlutusCore.Test (TestNested, goldenUEval, testNestedGhc)
 import PlutusTx.Test (goldenPir)
 import Test.Tasty (TestName)
 import Test.Tasty.Hedgehog (testPropertyNamed)
@@ -46,7 +46,7 @@ roundPlc = plc (Proxy @"roundPlc") Ratio.round
 
 tests :: TestNested
 tests =
-  testNested "StdLib"
+  testNestedGhc "StdLib"
     [ goldenUEval "ratioInterop" [ getPlcNoAnn roundPlc, snd (Lift.liftProgramDef (Ratio.fromGHC 3.75)) ]
     , testRatioProperty "round" Ratio.round round
     , testRatioProperty "truncate" Ratio.truncate truncate
@@ -115,8 +115,10 @@ testReduce = Hedgehog.property $ do
 testOrd :: Property
 testOrd = Hedgehog.property $ do
     let gen = Gen.integral (Range.linear (-10000) 100000)
-    n1 <- Hedgehog.forAll $ (%) <$> gen <*> gen
-    n2 <- Hedgehog.forAll $ (%) <$> gen <*> gen
+        -- Ratio must have non-zero denominator or else an ArithException will be thrown.
+        gen' = Gen.filter (/= 0) gen
+    n1 <- Hedgehog.forAll $ (%) <$> gen <*> gen'
+    n2 <- Hedgehog.forAll $ (%) <$> gen <*> gen'
     ghcResult <- tryHard $ n1 <= n2
     plutusResult <- tryHard $ (PlutusTx.<=) (Ratio.fromGHC n1) (Ratio.fromGHC n2)
     Hedgehog.annotateShow ghcResult
