@@ -223,8 +223,8 @@ compileToReadable (Program a v t) =
         >=> (withSemanticsVariant . flip DeadCode.removeDeadBindings)
         >=> (<$ logVerbose "  !!! simplifyTerm")
         >=> simplifyTerm
-        -- >=> (<$ logVerbose "  !!! floatOut")
-        -- >=> floatOut
+        >=> (<$ logVerbose "  !!! floatOut")
+        >=> floatOut
         >=> through check
   in validateOpts v >> Program a v <$> pipeline t
 
