@@ -492,7 +492,10 @@ BUILTIN blake2b-224 = λ
   ; _ -> inj₁ userError
   }
 BUILTIN integerToByteString = λ
-  { (app base (V-con integer i)) -> inj₂ (V-con bytestring (ITOBS i))
+  { (app base (V-con integer i)) -> case ITOBS i of λ
+      { (just b) -> inj₂ (V-con bytestring b)
+      ; nothing -> inj₁ userError
+      }
   ; _ -> inj₁ userError
   }
 BUILTIN byteStringToInteger = λ
@@ -500,15 +503,24 @@ BUILTIN byteStringToInteger = λ
   ; _ -> inj₁ userError
   }
 BUILTIN andByteString = λ
-  { (app (app base (V-con bytestring b)) (V-con bytestring b')) -> inj₂ (V-con bytestring (andBS b b'))
+  { (app (app base (V-con bytestring b)) (V-con bytestring b')) -> case andBS b b' of λ
+      { (just b) -> inj₂ (V-con bytestring b)
+      ; nothing -> inj₁ userError
+      }
   ; _ -> inj₁ userError
   }
 BUILTIN iorByteString = λ
-  { (app (app base (V-con bytestring b)) (V-con bytestring b')) -> inj₂ (V-con bytestring (iorBS b b'))
+  { (app (app base (V-con bytestring b)) (V-con bytestring b')) -> case iorBS b b' of λ
+      { (just b) -> inj₂ (V-con bytestring b)
+      ; nothing -> inj₁ userError
+      }
   ; _ -> inj₁ userError
   }
 BUILTIN xorByteString = λ
-  { (app (app base (V-con bytestring b)) (V-con bytestring b')) -> inj₂ (V-con bytestring (xorBS b b'))
+  { (app (app base (V-con bytestring b)) (V-con bytestring b')) -> case xorBS b b' of λ
+      { (just b) -> inj₂ (V-con bytestring b)
+      ; nothing -> inj₁ userError
+      }
   ; _ -> inj₁ userError
   }
 BUILTIN complementByteString = λ
@@ -528,15 +540,21 @@ BUILTIN popCountByteString = λ
   ; _ -> inj₁ userError
   }
 BUILTIN testBitByteString = λ
-  { (app (app base (V-con bytestring b)) (V-con integer i)) -> inj₂ (V-con bool (testBitBS b i))
+  { (app (app base (V-con bytestring b)) (V-con integer i)) -> case testBitBS b i of λ
+      { (just v) -> inj₂ (V-con bool v)
+      ; nothing -> inj₁ userError
+      }
   ; _ -> inj₁ userError
   }
 BUILTIN writeBitByteString = λ
-  { (app (app (app base (V-con bytestring b)) (V-con integer i)) (V-con bool v)) -> inj₂ (V-con bytestring (writeBitBS b i v))
+  { (app (app (app base (V-con bytestring b)) (V-con integer i)) (V-con bool v)) -> case writeBitBS b i v of λ
+      { (just b) -> inj₂ (V-con bytestring b)
+      ; nothing -> inj₁ userError
+      }
   ; _ -> inj₁ userError
   }
 BUILTIN findFirstSetByteString = λ
-  { (app base (V-con bytestring b)) -> inj₂ (V-con integer (popCountBS b))
+  { (app base (V-con bytestring b)) -> inj₂ (V-con integer (findFirstSetBS b))
   ; _ -> inj₁ userError
   }
 

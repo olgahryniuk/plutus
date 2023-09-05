@@ -307,8 +307,8 @@ hence need to be embedded into `n⋆ / n♯ ⊢⋆` using the postfix constructo
     signature bls12-381-millerLoop            = ∙ [ bls12-381-g1-element ↑ , bls12-381-g2-element ↑ ]⟶ bls12-381-mlresult ↑
     signature bls12-381-mulMlResult           = ∙ [ bls12-381-mlresult ↑ , bls12-381-mlresult ↑ ]⟶ bls12-381-mlresult ↑
     signature bls12-381-finalVerify           = ∙ [ bls12-381-mlresult ↑ , bls12-381-mlresult ↑ ]⟶ bool ↑
-    signature integerToByteString             = ∙ [ bytestring ↑ ]⟶ integer ↑
-    signature byteStringToInteger             = ∙ [ integer ↑ ]⟶ bytestring ↑
+    signature integerToByteString             = ∙ [ integer ↑ ]⟶ bytestring ↑
+    signature byteStringToInteger             = ∙ [ bytestring ↑ ]⟶ integer ↑
     signature andByteString                   = ∙ [ bytestring ↑ , bytestring ↑ ]⟶ bytestring ↑
     signature iorByteString                   = ∙ [ bytestring ↑ , bytestring ↑ ]⟶ bytestring ↑
     signature xorByteString                   = ∙ [ bytestring ↑ , bytestring ↑ ]⟶ bytestring ↑
@@ -468,17 +468,17 @@ postulate
   BLS12-381-finalVerify     : Bls12-381-MlResult → Bls12-381-MlResult → Bool
   KECCAK-256                : ByteString → ByteString
   BLAKE2B-224               : ByteString → ByteString
-  ITOBS                     : Int → ByteString 
+  ITOBS                     : Int → Maybe ByteString 
   BSTOI                     : ByteString → Int 
-  andBS                     : ByteString → ByteString → ByteString 
-  iorBS                     : ByteString → ByteString → ByteString 
-  xorBS                     : ByteString → ByteString → ByteString 
+  andBS                     : ByteString → ByteString → Maybe ByteString 
+  iorBS                     : ByteString → ByteString → Maybe ByteString 
+  xorBS                     : ByteString → ByteString → Maybe ByteString 
   complementBS              : ByteString → ByteString 
   shiftBS                   : ByteString → Int → ByteString 
   rotateBS                  : ByteString → Int → ByteString 
   popCountBS                : ByteString → Int 
-  testBitBS                 : ByteString → Int → Bool 
-  writeBitBS                : ByteString → Int → Bool → ByteString 
+  testBitBS                 : ByteString → Int → Maybe Bool 
+  writeBitBS                : ByteString → Int → Bool → Maybe ByteString 
   findFirstSetBS            : ByteString → Int 
 ```
 
@@ -573,15 +573,15 @@ postulate
 {-# FOREIGN GHC import Bitwise qualified as BW #-}
 {-# COMPILE GHC ITOBS          = BW.integerToByteString #-}
 {-# COMPILE GHC BSTOI          = BW.byteStringToInteger #-}
-{-# COMPILE GHC andBS          = BW.andByteString #-}
-{-# COMPILE GHC iorBS          = BW.iorByteString #-}
-{-# COMPILE GHC xorBS          = BW.xorByteString #-}
+{-# COMPILE GHC andBS          = \bs bs' -> emitterResultToMaybe . runEmitter $ BW.andByteString bs bs' #-}
+{-# COMPILE GHC iorBS          = \bs bs' -> emitterResultToMaybe . runEmitter $ BW.iorByteString bs bs' #-}
+{-# COMPILE GHC xorBS          = \bs bs' -> emitterResultToMaybe . runEmitter $ BW.xorByteString bs bs' #-}
 {-# COMPILE GHC complementBS   = BW.complementByteString #-}
 {-# COMPILE GHC shiftBS        = BW.shiftByteString #-}
 {-# COMPILE GHC rotateBS       = BW.rotateByteString #-}
 {-# COMPILE GHC popCountBS     = BW.popCountByteString #-}
-{-# COMPILE GHC testBitBS      = BW.testBitByteString #-}
-{-# COMPILE GHC writeBitBS     = BW.writeBitByteString #-}
+{-# COMPILE GHC testBitBS      = \bs i -> emitterResultToMaybe . runEmitter $ BW.testBitByteString bs i #-}
+{-# COMPILE GHC writeBitBS     = \bs i v -> emitterResultToMaybe . runEmitter $ BW.writeBitByteString bs i v #-}
 {-# COMPILE GHC findFirstSetBS = BW.findFirstSetByteString #-}
 
 -- no binding needed for appendStr
