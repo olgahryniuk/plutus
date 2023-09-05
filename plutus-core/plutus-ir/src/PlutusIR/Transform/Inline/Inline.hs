@@ -247,7 +247,7 @@ processTerm = handleTerm <=< traverseOf termSubtypes applyTypeSubstitution where
                                 -- there's substitution
                                 rhs = inlineTermToTerm defAsInlineTerm
 
-                            callSiteInline rhs varInfo processedArgs
+                            callSiteInline processedHd rhs varInfo processedArgs
                         -- The variable maybe a *recursive* let binding, in which case it won't be
                         -- in the map, and we don't process it. ATM recursive bindings aren't
                         -- inlined.
