@@ -128,6 +128,19 @@ data Builtin : Set where
   -- Keccak-256, Blake2b-224
   keccak-256                      : Builtin
   blake2b-224                     : Builtin
+  -- Bitwise operations
+  integerToByteString             : Builtin
+  byteStringToInteger             : Builtin
+  andByteString                   : Builtin
+  iorByteString                   : Builtin
+  xorByteString                   : Builtin
+  complementByteString            : Builtin
+  shiftByteString                 : Builtin
+  rotateByteString                : Builtin
+  popCountByteString              : Builtin
+  testBitByteString               : Builtin
+  writeBitByteString              : Builtin
+  findFirstSetByteString          : Builtin
 ```
 
 ## Signatures
@@ -294,6 +307,18 @@ hence need to be embedded into `n⋆ / n♯ ⊢⋆` using the postfix constructo
     signature bls12-381-millerLoop            = ∙ [ bls12-381-g1-element ↑ , bls12-381-g2-element ↑ ]⟶ bls12-381-mlresult ↑
     signature bls12-381-mulMlResult           = ∙ [ bls12-381-mlresult ↑ , bls12-381-mlresult ↑ ]⟶ bls12-381-mlresult ↑
     signature bls12-381-finalVerify           = ∙ [ bls12-381-mlresult ↑ , bls12-381-mlresult ↑ ]⟶ bool ↑
+    signature integerToByteString             = ∙ [ bytestring ↑ ]⟶ integer ↑
+    signature byteStringToInteger             = ∙ [ integer ↑ ]⟶ bytestring ↑
+    signature andByteString                   = ∙ [ bytestring ↑ , bytestring ↑ ]⟶ bytestring ↑
+    signature iorByteString                   = ∙ [ bytestring ↑ , bytestring ↑ ]⟶ bytestring ↑
+    signature xorByteString                   = ∙ [ bytestring ↑ , bytestring ↑ ]⟶ bytestring ↑
+    signature complementByteString            = ∙ [ bytestring ↑ ]⟶ bytestring ↑
+    signature shiftByteString                 = ∙ [ bytestring ↑ , integer ↑ ]⟶ bytestring ↑
+    signature rotateByteString                = ∙ [ bytestring ↑ , integer ↑ ]⟶ bytestring ↑
+    signature popCountByteString              = ∙ [ bytestring ↑ ]⟶ integer ↑
+    signature testBitByteString               = ∙ [ bytestring ↑ , integer ↑ ]⟶ bool ↑
+    signature writeBitByteString              = ∙ [ bytestring ↑ , integer ↑ , bool ↑ ]⟶ bytestring ↑
+    signature findFirstSetByteString          = ∙ [ bytestring ↑ ]⟶ integer ↑
 
 open SugaredSignature using (signature) public
 
@@ -378,6 +403,18 @@ Each Agda built-in name must be mapped to a Haskell name.
                                           | Bls12_381_finalVerify
                                           | Keccak_256
                                           | Blake2b_224
+                                          | IntegerToByteString   
+                                          | ByteStringToInteger   
+                                          | AndByteString         
+                                          | IorByteString         
+                                          | XorByteString         
+                                          | ComplementByteString  
+                                          | ShiftByteString       
+                                          | RotateByteString      
+                                          | PopCountByteString    
+                                          | TestBitByteString     
+                                          | WriteBitByteString    
+                                          | FindFirstSetByteString    
                                           ) #-}
 ```
 
@@ -431,6 +468,18 @@ postulate
   BLS12-381-finalVerify     : Bls12-381-MlResult → Bls12-381-MlResult → Bool
   KECCAK-256                : ByteString → ByteString
   BLAKE2B-224               : ByteString → ByteString
+  ITOBS                     : Int → ByteString 
+  BSTOI                     : ByteString → Int 
+  andBS                     : ByteString → ByteString → ByteString 
+  iorBS                     : ByteString → ByteString → ByteString 
+  xorBS                     : ByteString → ByteString → ByteString 
+  complementBS              : ByteString → ByteString 
+  shiftBS                   : ByteString → Int → ByteString 
+  rotateBS                  : ByteString → Int → ByteString 
+  popCountBS                : ByteString → Int 
+  testBitBS                 : ByteString → Int → Bool 
+  writeBitBS                : ByteString → Int → Bool → ByteString 
+  findFirstSetBS            : ByteString → Int 
 ```
 
 ### What builtin operations should be compiled to if we compile to Haskell
@@ -520,6 +569,20 @@ postulate
 
 {-# COMPILE GHC KECCAK-256 = B.convert . Hash.keccak_256 #-}
 {-# COMPILE GHC BLAKE2B-224 = B.convert . Hash.blake2b_224 #-}
+
+{-# FOREIGN GHC import Bitwise qualified as BW #-}
+{-# COMPILE GHC ITOBS          = BW.integerToByteString #-}
+{-# COMPILE GHC BSTOI          = BW.byteStringToInteger #-}
+{-# COMPILE GHC andBS          = BW.andByteString #-}
+{-# COMPILE GHC iorBS          = BW.iorByteString #-}
+{-# COMPILE GHC xorBS          = BW.xorByteString #-}
+{-# COMPILE GHC complementBS   = BW.complementByteString #-}
+{-# COMPILE GHC shiftBS        = BW.shiftByteString #-}
+{-# COMPILE GHC rotateBS       = BW.rotateByteString #-}
+{-# COMPILE GHC popCountBS     = BW.popCountByteString #-}
+{-# COMPILE GHC testBitBS      = BW.testBitByteString #-}
+{-# COMPILE GHC writeBitBS     = BW.writeBitByteString #-}
+{-# COMPILE GHC findFirstSetBS = BW.findFirstSetByteString #-}
 
 -- no binding needed for appendStr
 -- no binding needed for traceStr

@@ -491,7 +491,54 @@ BUILTIN blake2b-224 = λ
   { (app base (V-con bytestring b)) -> inj₂ (V-con bytestring (BLAKE2B-224 b))
   ; _ -> inj₁ userError
   }
-
+BUILTIN integerToByteString = λ
+  { (app base (V-con integer i)) -> inj₂ (V-con bytestring (ITOBS i))
+  ; _ -> inj₁ userError
+  }
+BUILTIN byteStringToInteger = λ
+  { (app base (V-con bytestring b)) -> inj₂ (V-con integer (BSTOI b))
+  ; _ -> inj₁ userError
+  }
+BUILTIN andByteString = λ
+  { (app (app base (V-con bytestring b)) (V-con bytestring b')) -> inj₂ (V-con bytestring (andBS b b'))
+  ; _ -> inj₁ userError
+  }
+BUILTIN iorByteString = λ
+  { (app (app base (V-con bytestring b)) (V-con bytestring b')) -> inj₂ (V-con bytestring (iorBS b b'))
+  ; _ -> inj₁ userError
+  }
+BUILTIN xorByteString = λ
+  { (app (app base (V-con bytestring b)) (V-con bytestring b')) -> inj₂ (V-con bytestring (xorBS b b'))
+  ; _ -> inj₁ userError
+  }
+BUILTIN complementByteString = λ
+  { (app base (V-con bytestring b)) -> inj₂ (V-con bytestring (complementBS b))
+  ; _ -> inj₁ userError
+  }
+BUILTIN shiftByteString = λ
+  { (app (app base (V-con bytestring b)) (V-con integer i)) -> inj₂ (V-con bytestring (shiftBS b i))
+  ; _ -> inj₁ userError
+  }
+BUILTIN rotateByteString = λ
+  { (app (app base (V-con bytestring b)) (V-con integer i)) -> inj₂ (V-con bytestring (rotateBS b i))
+  ; _ -> inj₁ userError
+  }
+BUILTIN popCountByteString = λ
+  { (app base (V-con bytestring b)) -> inj₂ (V-con integer (popCountBS b))
+  ; _ -> inj₁ userError
+  }
+BUILTIN testBitByteString = λ
+  { (app (app base (V-con bytestring b)) (V-con integer i)) -> inj₂ (V-con bool (testBitBS b i))
+  ; _ -> inj₁ userError
+  }
+BUILTIN writeBitByteString = λ
+  { (app (app (app base (V-con bytestring b)) (V-con integer i)) (V-con bool v)) -> inj₂ (V-con bytestring (writeBitBS b i v))
+  ; _ -> inj₁ userError
+  }
+BUILTIN findFirstSetByteString = λ
+  { (app base (V-con bytestring b)) -> inj₂ (V-con integer (popCountBS b))
+  ; _ -> inj₁ userError
+  }
 
 BUILTIN' : ∀ b
   → ∀{tn} → {pt : tn ∔ 0 ≣ fv (signature b)}
