@@ -6,6 +6,7 @@
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE TemplateHaskell    #-}
 {-# LANGUAGE TypeApplications   #-}
+{-# LANGUAGE ViewPatterns       #-}
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 -- Prevent unboxing, which the plugin can't deal with
@@ -188,13 +189,6 @@ newtype Value = Value { getValue :: Map.Map CurrencySymbol (Map.Map TokenName In
     deriving newtype (PlutusTx.ToData, PlutusTx.FromData, PlutusTx.UnsafeFromData)
     deriving Pretty via (PrettyShow Value)
 
-instance Haskell.Eq Value where
-    (==) = eq
-
-instance Eq Value where
-    {-# INLINABLE (==) #-}
-    (==) = eq
-
 instance Haskell.Semigroup Value where
     (<>) = unionWith (+)
 
@@ -367,6 +361,192 @@ split (Value mp) = (negate (Value neg), Value pos) where
   splitIntl :: Map.Map TokenName Integer -> These (Map.Map TokenName Integer) (Map.Map TokenName Integer)
   splitIntl mp' = These l r where
     (l, r) = Map.mapThese (\i -> if i <= 0 then This i else That i) mp'
+
+
+
+newtype MultiMap k v = UnsafeMultiMap
+    { unMultiMap :: [(k, [v])]
+    }
+
+toMultiMap :: [(k, v)] -> MultiMap k v
+toMultiMap = Haskell.undefined
+{-# INLINE toMultiMap #-}
+
+emptyMap :: MultiMap k v
+emptyMap = UnsafeMultiMap []
+{-# INLINE emptyMap #-}
+
+singletonMap :: k -> v -> MultiMap k v
+singletonMap = Haskell.undefined
+{-# INLINE singletonMap #-}
+
+insertOne :: k -> v -> MultiMap k v -> MultiMap k v
+insertOne = Haskell.undefined
+{-# INLINE insertOne #-}
+
+data MatchResult a
+    = MatchSuccess
+    | MatchFailure a a
+
+instance Functor MatchResult where
+    fmap _ MatchSuccess       = MatchSuccess
+    fmap f (MatchFailure x y) = MatchFailure (f x) (f y)
+    {-# INLINE fmap #-}
+
+-- matchKVs
+--     :: forall k v w. Eq k
+--     => ([(k, v)] -> MultiMap k w)
+--     -> (v -> v -> MatchResult w)
+--     -> [(k, v)]
+--     -> [(k, v)]
+--     -> MatchResult (MultiMap k w)
+-- matchKVs embed matchV = go where
+--     go :: [(k, v)] -> [(k, v)] -> MatchResult (MultiMap k w)
+--     go []                []                = MatchSuccess
+--     go []                kvs2              = MatchFailure emptyMap (embed kvs2)
+--     go kvs1              []                = MatchFailure (embed kvs1) emptyMap
+--     go ((k1, v1) : kvs1) ((k2, v2) : kvs2)
+--         | k1 == k2 = case go kvs1 kvs2 of
+--             MatchSuccess -> singletonMap k1 <$> matchV v1 v2
+--             MatchFailure kvs1' kvs2' ->
+--                 MatchFailure
+--                     (insertOne k1 v1 kvs1')
+--                     (insertOne k1 v2 kvs2')
+--         | otherwise =
+--             MatchFailure
+--                 (insertOne k1 v1 $ embed kvs1)
+--                 (insertOne k2 v2 $ embed kvs2)
+-- {-# INLINE matchKVs #-}
+
+-- {-
+-- (1, [2, 3, 5]) (4, [6, 8, 9])
+-- (1, [2, 3, 5]) (3, [6, 8, 9])
+
+-- -}
+
+-- matchEq :: Eq a => a -> a -> MatchResult a
+-- matchEq x y = if x == y then MatchSuccess else MatchFailure x y
+
+-- instance Eq Value where
+--     Value (Map.toList -> currs1) == Value (Map.toList -> currs2) =
+--         case matchKVs _ matchMap currs1 currs2 of
+--             MatchSuccess                 -> True
+--             MatchFailure currs1' currs2' -> _ currs1' currs2'
+--       where
+--         matchMap
+--             :: Map.Map TokenName Integer
+--             -> Map.Map TokenName Integer
+--             -> MatchResult (MultiMap TokenName Integer)
+--         matchMap (Map.toList -> tokens1) (Map.toList -> tokens2) =
+--             matchKVs toMultiMap matchEq tokens1 tokens2
+
+matchKVs
+    :: forall k v. Eq k
+    => (v -> v -> MatchResult v) -> [(k, v)] -> [(k, v)] -> MatchResult (MultiMap k v)
+matchKVs matchV = go where
+    go :: [(k, v)] -> [(k, v)] -> MatchResult (MultiMap k v)
+    go []                []                = MatchSuccess
+    go []                kvs2              = MatchFailure emptyMap (toMultiMap kvs2)
+    go kvs1              []                = MatchFailure (toMultiMap kvs1) emptyMap
+    go ((k1, v1) : kvs1) ((k2, v2) : kvs2)
+        | k1 == k2 = case go kvs1 kvs2 of
+            MatchSuccess -> singletonMap k1 <$> matchV v1 v2
+            MatchFailure kvs1' kvs2' ->
+                MatchFailure
+                    (insertOne k1 v1 kvs1')
+                    (insertOne k1 v2 kvs2')
+        | otherwise =
+            MatchFailure
+                (insertOne k1 v1 $ toMultiMap kvs1)
+                (insertOne k2 v2 $ toMultiMap kvs2)
+{-# INLINE matchKVs #-}
+
+{-
+(1, [2, 3, 5]) (4, [6, 8, 9])
+(1, [2, 3, 5]) (3, [6, 8, 9])
+
+-}
+
+
+matchEq :: Eq a => a -> a -> MatchResult a
+matchEq x y = if x == y then MatchSuccess else MatchFailure x y
+
+pointwiseEqWith :: forall k v. Eq k => ([v] -> [v] -> Bool) -> MultiMap k v -> MultiMap k v -> Bool
+pointwiseEqWith eqVs (UnsafeMultiMap kvs01) (UnsafeMultiMap kvs02) = go kvs01 kvs02 where
+    go :: [(k, [v])] -> [(k, [v])] -> Bool
+    go []                 []                 = True
+    go []                 _                  = False
+    go _                  []                 = False
+    go ((k1, vs1) : kvs1) ((k2, vs2) : kvs2) =
+        if k1 == k2
+            then if go kvs1 kvs2
+                then eqVs vs1 vs2
+                else False
+            else False
+{-# INLINE pointwiseEqWith #-}
+
+instance Eq Value where
+    Value (Map.toList -> currs1) == Value (Map.toList -> currs2) =
+        case matchKVs matchMap currs1 currs2 of
+            MatchSuccess                 -> True
+            MatchFailure currs1' currs2' -> pointwiseEqWith _ currs1' currs2'
+      where
+        matchMap
+            :: Map.Map TokenName Integer
+            -> Map.Map TokenName Integer
+            -> MatchResult (Map.Map TokenName Integer)
+        matchMap (Map.toList -> tokens1) (Map.toList -> tokens2) =
+            Map.fromList . map (fmap sum) . unMultiMap <$> matchKVs matchEq tokens1 tokens2
+
+-- matchKVs
+--     :: forall k v. Eq k
+--     => (k -> v -> v -> MatchResult (MultiMap k v))
+--     -> [(k, v)]
+--     -> [(k, v)]
+--     -> MatchResult (MultiMap k v)
+-- matchKVs matchV = go where
+--     go :: [(k, v)] -> [(k, v)] -> MatchResult (MultiMap k v)
+--     go []                []                = MatchSuccess
+--     go []                kvs2              = MatchFailure emptyMap (toMultiMap kvs2)
+--     go kvs1              []                = MatchFailure (toMultiMap kvs1) emptyMap
+--     go ((k1, v1) : kvs1) ((k2, v2) : kvs2)
+--         | k1 == k2 = case go kvs1 kvs2 of
+--             MatchSuccess -> matchV k1 v1 v2
+--             MatchFailure kvs1' kvs2' ->
+--                 MatchFailure
+--                     (insertOne k1 v1 kvs1')
+--                     (insertOne k1 v2 kvs2')
+--         | otherwise =
+--             MatchFailure
+--                 (insertOne k1 v1 $ toMultiMap kvs1)
+--                 (insertOne k2 v2 $ toMultiMap kvs2)
+-- {-# INLINE matchKVs #-}
+
+-- matchEq :: Eq a => a -> a -> MatchResult a
+-- matchEq x y = if x == y then MatchSuccess else MatchFailure x y
+
+-- instance Eq Value where
+--     Value (Map.toList -> currs1) == Value (Map.toList -> currs2) =
+--         case matchKVs matchMap currs1 currs2 of
+--             MatchSuccess                 -> True
+--             MatchFailure currs1' currs2' -> _ currs1' currs2'
+--       where
+--         matchMap
+--             :: CurrencySymbol
+--             -> Map.Map TokenName Integer
+--             -> Map.Map TokenName Integer
+--             -> MatchResult (MultiMap CurrencySymbol (Map.Map TokenName Integer))
+--         matchMap curr (Map.toList -> tokens1) (Map.toList -> tokens2) =
+--             _ $ matchKVs _ tokens1 tokens2
+
+-- newtype Value = Value { getValue :: Map.Map CurrencySymbol (Map.Map TokenName Integer) }
+
+-- instance Haskell.Eq Value where
+--     (==) = eq
+
+-- instance Eq Value where
+--     {-# INLINABLE (==) #-}
+--     (==) = eq
 
 makeLift ''CurrencySymbol
 makeLift ''TokenName
