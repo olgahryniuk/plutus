@@ -364,23 +364,23 @@ split (Value mp) = (negate (Value neg), Value pos) where
 
 
 
-newtype MultiMap k v = UnsafeMultiMap
-    { unMultiMap :: [(k, [v])]
+newtype SortedMap k v = UnsafeSortedMap
+    { unSortedMap :: [(k, v)]
     }
 
-toMultiMap :: [(k, v)] -> MultiMap k v
-toMultiMap = Haskell.undefined
-{-# INLINE toMultiMap #-}
+toSortedMap :: [(k, v)] -> SortedMap k [v]
+toSortedMap = Haskell.undefined
+{-# INLINE toSortedMap #-}
 
-emptyMap :: MultiMap k v
-emptyMap = UnsafeMultiMap []
+emptyMap :: SortedMap k v
+emptyMap = UnsafeSortedMap []
 {-# INLINE emptyMap #-}
 
-singletonMap :: k -> v -> MultiMap k v
+singletonMap :: k -> v -> SortedMap k [v]
 singletonMap = Haskell.undefined
 {-# INLINE singletonMap #-}
 
-insertOne :: k -> v -> MultiMap k v -> MultiMap k v
+insertOne :: k -> v -> SortedMap k [v] -> SortedMap k [v]
 insertOne = Haskell.undefined
 {-# INLINE insertOne #-}
 
@@ -395,13 +395,13 @@ instance Functor MatchResult where
 
 -- matchKVs
 --     :: forall k v w. Eq k
---     => ([(k, v)] -> MultiMap k w)
+--     => ([(k, v)] -> SortedMap k w)
 --     -> (v -> v -> MatchResult w)
 --     -> [(k, v)]
 --     -> [(k, v)]
---     -> MatchResult (MultiMap k w)
+--     -> MatchResult (SortedMap k w)
 -- matchKVs embed matchV = go where
---     go :: [(k, v)] -> [(k, v)] -> MatchResult (MultiMap k w)
+--     go :: [(k, v)] -> [(k, v)] -> MatchResult (SortedMap k w)
 --     go []                []                = MatchSuccess
 --     go []                kvs2              = MatchFailure emptyMap (embed kvs2)
 --     go kvs1              []                = MatchFailure (embed kvs1) emptyMap
@@ -436,79 +436,94 @@ instance Functor MatchResult where
 --         matchMap
 --             :: Map.Map TokenName Integer
 --             -> Map.Map TokenName Integer
---             -> MatchResult (MultiMap TokenName Integer)
+--             -> MatchResult (SortedMap TokenName Integer)
 --         matchMap (Map.toList -> tokens1) (Map.toList -> tokens2) =
---             matchKVs toMultiMap matchEq tokens1 tokens2
+--             matchKVs toSortedMap matchEq tokens1 tokens2
+
+isMatchSuccess :: MatchResult a -> Bool
+isMatchSuccess MatchSuccess       = True
+isMatchSuccess (MatchFailure _ _) = False
+{-# INLINE isMatchSuccess #-}
 
 matchKVs
     :: forall k v. Eq k
-    => (v -> v -> MatchResult v) -> [(k, v)] -> [(k, v)] -> MatchResult (MultiMap k v)
-matchKVs matchV = go where
-    go :: [(k, v)] -> [(k, v)] -> MatchResult (MultiMap k v)
+    => (v -> v -> Bool) -> [(k, v)] -> [(k, v)] -> MatchResult (SortedMap k [v])
+matchKVs structEqV = go where
+    go :: [(k, v)] -> [(k, v)] -> MatchResult (SortedMap k [v])
     go []                []                = MatchSuccess
-    go []                kvs2              = MatchFailure emptyMap (toMultiMap kvs2)
-    go kvs1              []                = MatchFailure (toMultiMap kvs1) emptyMap
+    go []                kvs2              = MatchFailure emptyMap (toSortedMap kvs2)
+    go kvs1              []                = MatchFailure (toSortedMap kvs1) emptyMap
     go ((k1, v1) : kvs1) ((k2, v2) : kvs2)
         | k1 == k2 = case go kvs1 kvs2 of
-            MatchSuccess -> singletonMap k1 <$> matchV v1 v2
+            MatchSuccess -> if structEqV v1 v2
+                then MatchSuccess
+                else MatchFailure
+                    (singletonMap k1 v1)
+                    (singletonMap k1 v2)
             MatchFailure kvs1' kvs2' ->
                 MatchFailure
                     (insertOne k1 v1 kvs1')
                     (insertOne k1 v2 kvs2')
         | otherwise =
             MatchFailure
-                (insertOne k1 v1 $ toMultiMap kvs1)
-                (insertOne k2 v2 $ toMultiMap kvs2)
+                (insertOne k1 v1 $ toSortedMap kvs1)
+                (insertOne k2 v2 $ toSortedMap kvs2)
 {-# INLINE matchKVs #-}
-
-{-
-(1, [2, 3, 5]) (4, [6, 8, 9])
-(1, [2, 3, 5]) (3, [6, 8, 9])
-
--}
-
 
 matchEq :: Eq a => a -> a -> MatchResult a
 matchEq x y = if x == y then MatchSuccess else MatchFailure x y
+{-# INLINE matchEq #-}
 
-pointwiseEqWith :: forall k v. Eq k => ([v] -> [v] -> Bool) -> MultiMap k v -> MultiMap k v -> Bool
-pointwiseEqWith eqVs (UnsafeMultiMap kvs01) (UnsafeMultiMap kvs02) = go kvs01 kvs02 where
-    go :: [(k, [v])] -> [(k, [v])] -> Bool
-    go []                 []                 = True
-    go []                 _                  = False
-    go _                  []                 = False
-    go ((k1, vs1) : kvs1) ((k2, vs2) : kvs2) =
+pointwiseEqWith :: forall k v. Eq k => (v -> v -> Bool) -> SortedMap k v -> SortedMap k v -> Bool
+pointwiseEqWith eqV (UnsafeSortedMap kvs01) (UnsafeSortedMap kvs02) = go kvs01 kvs02 where
+    go :: [(k, v)] -> [(k, v)] -> Bool
+    go []                []                = True
+    go []                _                 = False
+    go _                 []                = False
+    go ((k1, v1) : kvs1) ((k2, v2) : kvs2) =
         if k1 == k2
             then if go kvs1 kvs2
-                then eqVs vs1 vs2
+                then eqV v1 v2
                 else False
             else False
 {-# INLINE pointwiseEqWith #-}
 
+sortFoldMaps :: forall k v w. (v -> w -> w) -> w -> [Map.Map k v] -> SortedMap k w
+sortFoldMaps f z = go where
+    goMaps :: [Map.Map k v] -> SortedMap k w
+    goMaps []       = z
+    goMaps (m : ms) = goMap
+
+    goMap :: [Map.Map k v] -> SortedMap k w
+
+sortSumMaps :: [Map.Map k Integer] -> SortedMap k Integer
+sortSumMaps = sortFoldMaps (+) 0
+
+
 instance Eq Value where
     Value (Map.toList -> currs1) == Value (Map.toList -> currs2) =
-        case matchKVs matchMap currs1 currs2 of
+        case matchKVs structEqMap currs1 currs2 of
             MatchSuccess                 -> True
-            MatchFailure currs1' currs2' -> pointwiseEqWith _ currs1' currs2'
+            MatchFailure currs1' currs2' ->
+                pointwiseEqWith eqMaps currs1' currs2'
       where
-        matchMap
-            :: Map.Map TokenName Integer
-            -> Map.Map TokenName Integer
-            -> MatchResult (Map.Map TokenName Integer)
-        matchMap (Map.toList -> tokens1) (Map.toList -> tokens2) =
-            Map.fromList . map (fmap sum) . unMultiMap <$> matchKVs matchEq tokens1 tokens2
+        structEqMap :: Map.Map TokenName Integer -> Map.Map TokenName Integer -> Bool
+        structEqMap (Map.toList -> tokens1) (Map.toList -> tokens2) = tokens1 == tokens2
+
+        eqMaps :: [Map.Map TokenName Integer] -> [Map.Map TokenName Integer] -> Bool
+        eqMaps maps1 maps2 = pointwiseEqWith (==) (sumMaps maps1) (sumMaps maps2)
 
 -- matchKVs
 --     :: forall k v. Eq k
---     => (k -> v -> v -> MatchResult (MultiMap k v))
+--     => (k -> v -> v -> MatchResult (SortedMap k v))
 --     -> [(k, v)]
 --     -> [(k, v)]
---     -> MatchResult (MultiMap k v)
+--     -> MatchResult (SortedMap k v)
 -- matchKVs matchV = go where
---     go :: [(k, v)] -> [(k, v)] -> MatchResult (MultiMap k v)
+--     go :: [(k, v)] -> [(k, v)] -> MatchResult (SortedMap k v)
 --     go []                []                = MatchSuccess
---     go []                kvs2              = MatchFailure emptyMap (toMultiMap kvs2)
---     go kvs1              []                = MatchFailure (toMultiMap kvs1) emptyMap
+--     go []                kvs2              = MatchFailure emptyMap (toSortedMap kvs2)
+--     go kvs1              []                = MatchFailure (toSortedMap kvs1) emptyMap
 --     go ((k1, v1) : kvs1) ((k2, v2) : kvs2)
 --         | k1 == k2 = case go kvs1 kvs2 of
 --             MatchSuccess -> matchV k1 v1 v2
@@ -518,8 +533,8 @@ instance Eq Value where
 --                     (insertOne k1 v2 kvs2')
 --         | otherwise =
 --             MatchFailure
---                 (insertOne k1 v1 $ toMultiMap kvs1)
---                 (insertOne k2 v2 $ toMultiMap kvs2)
+--                 (insertOne k1 v1 $ toSortedMap kvs1)
+--                 (insertOne k2 v2 $ toSortedMap kvs2)
 -- {-# INLINE matchKVs #-}
 
 -- matchEq :: Eq a => a -> a -> MatchResult a
@@ -535,7 +550,7 @@ instance Eq Value where
 --             :: CurrencySymbol
 --             -> Map.Map TokenName Integer
 --             -> Map.Map TokenName Integer
---             -> MatchResult (MultiMap CurrencySymbol (Map.Map TokenName Integer))
+--             -> MatchResult (SortedMap CurrencySymbol (Map.Map TokenName Integer))
 --         matchMap curr (Map.toList -> tokens1) (Map.toList -> tokens2) =
 --             _ $ matchKVs _ tokens1 tokens2
 
