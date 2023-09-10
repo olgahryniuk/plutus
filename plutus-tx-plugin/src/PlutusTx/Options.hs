@@ -60,7 +60,6 @@ data PluginOptions = PluginOptions
       -- Which effectively ignores the trace text.
       _posRemoveTrace                    :: Bool
     }
-
 makeLenses ''PluginOptions
 
 type OptionKey = Text

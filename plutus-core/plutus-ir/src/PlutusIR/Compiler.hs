@@ -15,7 +15,7 @@ module PlutusIR.Compiler (
     Provenance (..),
     DatatypeComponent (..),
     noProvenance,
-    CompilationOpts,
+    CompilationOpts (..),
     coOptimize,
     coPedantic,
     coVerbose,

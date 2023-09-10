@@ -1,6 +1,13 @@
--- editorconfig-checker-disable-file
 {-# LANGUAGE TemplateHaskell #-}
-module UntypedPlutusCore.Simplify ( simplifyTerm, simplifyProgram, SimplifyOpts (..), soMaxSimplifierIterations, soInlineHints, defaultSimplifyOpts, InlineHints (..) ) where
+module UntypedPlutusCore.Simplify
+    ( simplifyTerm
+    , simplifyProgram
+    , SimplifyOpts (..)
+    , soMaxSimplifierIterations
+    , soInlineHints
+    , defaultSimplifyOpts
+    , InlineHints (..)
+    ) where
 
 import UntypedPlutusCore.Core.Type
 import UntypedPlutusCore.Transform.ForceDelay
@@ -14,9 +21,11 @@ import PlutusCore.Quote
 
 import Control.Lens.TH
 
-data SimplifyOpts name a = SimplifyOpts { _soMaxSimplifierIterations  :: Int, _soInlineHints :: InlineHints name a }
-  deriving stock (Show)
-
+data SimplifyOpts name a = SimplifyOpts
+    { _soMaxSimplifierIterations  :: Int
+    , _soInlineHints :: InlineHints name a
+    }
+    deriving stock (Show)
 makeLenses ''SimplifyOpts
 
 defaultSimplifyOpts :: SimplifyOpts name a
