@@ -42,7 +42,23 @@ basic = testNestedGhc "Basic" [
   , goldenUPlcCatch "patternMatchFailure" patternMatchFailure
   , goldenPir "defaultCaseDuplication" defaultCaseDuplication
   , goldenPir "defaultCaseDuplicationNested" defaultCaseDuplicationNested
+  , goldenUPlc "letOverAppMulti" letOverAppMulti
   ]
+
+letOverAppMulti :: CompiledCode Integer
+letOverAppMulti = plc (Proxy @"letOverAppMulti") (
+    let
+        idFun :: Integer -> Integer
+        {-# NOINLINE idFun #-}
+        idFun y = y
+        funApp :: (Integer -> Integer) -> (Integer -> Integer)
+        {-# NOINLINE funApp #-}
+        funApp x = idFun
+        k :: (Integer -> Integer) -> (Integer -> Integer)
+        {-# NOINLINE k #-}
+        k = funApp
+    in k (k idFun) 6
+    )
 
 monoId :: CompiledCode (Integer -> Integer)
 monoId = plc (Proxy @"monoId") (\(x :: Integer) -> x)
