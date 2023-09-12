@@ -1,0 +1,87 @@
+{- Here f occurs more than once so it is not inlined unconditionally.
+But it should be inlined by the callsite inliner because e is smaller than f a b c d
+
+
+let f = \a b c d -> e
+   g = f a
+in g b c d
+
+
+-}
+
+
+  [
+    [
+      [
+        (force
+          (force
+            (force
+              [
+                (lam g_i0 (force g_i1))
+                (delay
+                  [
+                    (lam g_i0 (force g_i1))
+                    (delay
+                      (delay
+                        (delay
+                          (delay
+                            [
+                              (force
+                                (force
+                                  (force
+                                    (force
+                                      [
+                                        (lam f_i0 (force f_i1))
+                                        (delay
+                                          [
+                                            (lam f_i0 (force f_i1))
+                                            (delay
+                                              (delay
+                                                (delay
+                                                  (delay
+                                                    (delay
+                                                      (lam
+                                                        a_i0
+                                                        (lam
+                                                          b_i0
+                                                          (lam
+                                                            c_i0
+                                                            (lam
+                                                              d_i0
+                                                              (con integer 6)
+                                                            )
+                                                          )
+                                                        )
+                                                      )
+                                                    )
+                                                  )
+                                                )
+                                              )
+                                            )
+                                          ]
+                                        )
+                                      ]
+                                    )
+                                  )
+                                )
+                              )
+                              [
+                                (lam g_i0 (force g_i1)) (delay (con integer 2))
+                              ]
+                            ]
+                          )
+                        )
+                      )
+                    )
+                  ]
+                )
+              ]
+            )
+          )
+        )
+        (con integer 3)
+      ]
+      (con integer 4)
+    ]
+    (con integer 5)
+  ]
