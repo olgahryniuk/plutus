@@ -1,0 +1,49 @@
+(program
+  1.1.0
+  [
+    (force
+      (force
+        (force
+          (force
+            [
+              (lam g_i0 (force g_i1))
+              (delay
+                [
+                  (lam g_i0 (force g_i1))
+                  (delay
+                    [
+                      (lam f_i0 (force f_i1))
+                      (delay
+                        [
+                          (lam f_i0 (force f_i1))
+                          (delay
+                            (delay
+                              (delay
+                                (delay
+                                  (delay
+                                    (lam
+                                      a_i0
+                                      (lam
+                                        b_i0
+                                        (lam c_i0 (lam d_i0 (con integer 6)))
+                                      )
+                                    )
+                                  )
+                                )
+                              )
+                            )
+                          )
+                        ]
+                      )
+                    ]
+                  )
+                ]
+              )
+            ]
+          )
+        )
+      )
+    )
+    (con integer 2)
+  ]
+)
