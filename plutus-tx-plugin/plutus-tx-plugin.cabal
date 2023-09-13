@@ -121,10 +121,6 @@ test-suite plutus-tx-tests
   if flag(use-ghc-stub)
     buildable: False
 
-  -- test output changes after 9.2, bad for golden tests
-  if impl(ghc >=9.3)
-    buildable: False
-
   type:               exitcode-stdio-1.0
   hs-source-dirs:     test
   main-is:            Spec.hs
@@ -197,9 +193,10 @@ test-suite size
   main-is:            Main.hs
   hs-source-dirs:     test/size
   build-depends:
-    , base                                      >=4.9   && <5.0
-    , plutus-tx-plugin                          ^>=1.12
-    , plutus-tx:{plutus-tx, plutus-tx-testlib}  ^>=1.12
+    , base                                            >=4.9   && <5.0
+    , plutus-core:{plutus-core, plutus-core-testlib}  ^>=1.12
+    , plutus-tx-plugin                                ^>=1.12
+    , plutus-tx:{plutus-tx, plutus-tx-testlib}        ^>=1.12
     , tagged
     , tasty
 
