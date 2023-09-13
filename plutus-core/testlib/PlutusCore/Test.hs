@@ -1,8 +1,10 @@
+{-# LANGUAGE DataKinds              #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE OverloadedStrings      #-}
 {-# LANGUAGE RankNTypes             #-}
 {-# LANGUAGE TypeApplications       #-}
+{-# LANGUAGE TypeFamilies           #-}
 {-# LANGUAGE UndecidableInstances   #-}
 
 module PlutusCore.Test (
@@ -27,7 +29,7 @@ module PlutusCore.Test (
   goldenUEval,
   goldenTEvalCatch,
   goldenUEvalCatch,
-  goldenUEvalProfile,
+  goldenUEvalLogs,
   goldenUplcBudget,
   initialSrcSpan,
   topSrcSpan,
@@ -37,7 +39,7 @@ module PlutusCore.Test (
   noRename,
   BrokenRenameT (..),
   runBrokenRenameT,
-  runUPlcProfile,
+  runUPlcLogs,
   runUPlcProfileExec,
   brokenRename,
   Prerename (..),
@@ -194,19 +196,33 @@ runUPlc values = do
   liftEither . first toException . TPLC.extractEvaluationResult $
     UPLC.evaluateCekNoEmit TPLC.defaultCekParameters t
 
+data CekErrorWithLogs = CekErrorWithLogs [Text] (UPLC.CekEvaluationException TPLC.Name TPLC.DefaultUni UPLC.DefaultFun)
+
+instance (HasPrettyDefaults config ~ True, PrettyBy config (UPLC.CekEvaluationException TPLC.Name TPLC.DefaultUni UPLC.DefaultFun)) => PrettyBy config CekErrorWithLogs where
+  prettyBy config (CekErrorWithLogs logs err) =
+    PP.vsep
+    [ prettyBy config err
+    , "Logs:" PP.<+> PP.vsep (fmap PP.pretty logs)
+    ]
+
+instance Show CekErrorWithLogs where
+    show = render . prettyPlcReadableDebug
+
+instance Exception CekErrorWithLogs
+
 -- For golden tests of profiling.
-runUPlcProfile ::
+runUPlcLogs ::
   (ToUPlc a TPLC.DefaultUni UPLC.DefaultFun) =>
   [a] ->
   ExceptT
     SomeException
     IO
     (UPLC.Term UPLC.Name TPLC.DefaultUni UPLC.DefaultFun (), [Text])
-runUPlcProfile values = do
+runUPlcLogs values = do
   ps <- traverse toUPlc values
   let (UPLC.Program _ _ t) = foldl1 (unsafeFromRight .* UPLC.applyProgram) ps
       (result, logOut) = UPLC.evaluateCek UPLC.logEmitter TPLC.defaultCekParameters t
-  res <- fromRightM (throwError . SomeException) result
+  res <- fromRightM (throwError . SomeException . CekErrorWithLogs logOut) result
   pure (res, logOut)
 
 -- For the profiling executable.
@@ -333,15 +349,14 @@ goldenUEvalCatch ::
   TestNested
 goldenUEvalCatch name values = nestedGoldenVsDocM name ".ueval-catch" $ ppCatch $ runUPlc values
 
--- | Similar to @goldenUEval@ but with profiling turned on.
-goldenUEvalProfile ::
+-- | Similar to @goldenUEval@ but with logging turned on.
+goldenUEvalLogs ::
   (ToUPlc a TPLC.DefaultUni TPLC.DefaultFun) =>
   String ->
   [a] ->
   TestNested
-goldenUEvalProfile name values =
-  nestedGoldenVsDocM name ".ueval-profile" $
-    pretty . view _2 <$> (rethrow $ runUPlcProfile values)
+goldenUEvalLogs name values =
+  nestedGoldenVsDocM name ".ueval" $ ppCatch $ runUPlcLogs values
 
 -- Budget testing
 

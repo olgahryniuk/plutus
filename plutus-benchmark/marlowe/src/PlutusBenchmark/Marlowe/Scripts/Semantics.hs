@@ -25,8 +25,8 @@
 {-# OPTIONS_GHC -fno-ignore-interface-pragmas #-}
 {-# OPTIONS_GHC -fplugin-opt PlutusTx.Plugin:defer-errors #-}
 {-# OPTIONS_GHC -fplugin-opt PlutusTx.Plugin:target-version=1.0.0 #-}
+{-# OPTIONS_GHC -fplugin-opt PlutusTx.Plugin:conservative-optimisation #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
-
 
 module PlutusBenchmark.Marlowe.Scripts.Semantics
   ( -- * Types
@@ -88,19 +88,12 @@ import PlutusLedgerApi.V1.Value qualified as Val
 import PlutusLedgerApi.V2 qualified as Ledger (Address (Address))
 import PlutusTx qualified
 import PlutusTx.AssocMap qualified as AssocMap
+import PlutusTx.Trace (traceError, traceIfFalse)
 import Prelude qualified as Haskell
 
+import GHC.Exts as GHC
 
 -- Suppress traces, in order to save bytes.
-
-{-# INLINABLE traceError #-}
-traceError :: BuiltinString -> a
-traceError _ = error ()
-
-{-# INLINABLE traceIfFalse #-}
-traceIfFalse :: BuiltinString -> a -> a
-traceIfFalse _ = id
-
 
 -- | Input to a Marlowe transaction.
 type MarloweInput = [MarloweTxInput]
@@ -215,12 +208,12 @@ mkMarloweValidator
                              -- [Marlowe-Cardano Specification: "Constraint 13. Positive balances".]
                              -- [Marlowe-Cardano Specification: "Constraint 19. No duplicates".]
                              -- Check that the final state obeys the Semantic's invariants.
-                          && checkState "o" finalBalance txOutState
+                          && checkState "state" finalBalance txOutState
             preconditionsOk && inputsOk && payoutsOk && checkContinuation
               -- [Marlowe-Cardano Specification: "20. Single satsifaction".]
               -- Either there must be no payouts, or there must be no other validators.
               && traceIfFalse "z" (null payoutsByParty || noOthers)
-        Error TEAmbiguousTimeIntervalError -> traceError "i"
+        Error TEAmbiguousTimeIntervalError -> GHC.noinline traceError "i"
         Error TEApplyNoMatchError -> traceError "n"
         Error (TEIntervalError (InvalidInterval _)) -> traceError "j"
         Error (TEIntervalError (IntervalInPastError _ _)) -> traceError "k"
