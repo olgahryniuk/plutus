@@ -311,7 +311,9 @@ decodeUtf8 (BuiltinByteString b) = BuiltinString $ Text.decodeUtf8 b
 
 {-# NOINLINE integerToByteString #-}
 integerToByteString :: BuiltinInteger -> BuiltinByteString
-integerToByteString = BuiltinByteString . fromJust . Bitwise.integerToByteString
+integerToByteString i = case Bitwise.integerToByteString i of
+        Nothing -> mustBeReplaced "Error in integerToByteString: negative input?"
+        Just bs -> BuiltinByteString bs
 
 {-# NOINLINE byteStringToInteger #-}
 byteStringToInteger :: BuiltinByteString -> BuiltinInteger

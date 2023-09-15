@@ -270,6 +270,19 @@ builtinNames = [
     , 'Builtins.bls12_381_millerLoop
     , 'Builtins.bls12_381_mulMlResult
     , 'Builtins.bls12_381_finalVerify
+
+    , 'Builtins.integerToByteString
+    , 'Builtins.byteStringToInteger
+    , 'Builtins.andByteString
+    , 'Builtins.iorByteString
+    , 'Builtins.xorByteString
+    , 'Builtins.complementByteString
+    , 'Builtins.shiftByteString
+    , 'Builtins.rotateByteString
+    , 'Builtins.popCountByteString
+    , 'Builtins.testBitByteString
+    , 'Builtins.writeBitByteString
+    , 'Builtins.findFirstSetByteString
     ]
 
 defineBuiltinTerm :: CompilingDefault uni fun m ann => Ann -> TH.Name -> PIRTerm uni fun -> m ()
