@@ -106,6 +106,19 @@ module PlutusTx.Prelude (
     bls12_381_millerLoop,
     bls12_381_mulMlResult,
     bls12_381_finalVerify,
+    -- * Bitwise operations
+    integerToByteString,
+    byteStringToInteger,
+    andByteString,
+    iorByteString,
+    xorByteString,
+    complementByteString,
+    shiftByteString,
+    rotateByteString,
+    popCountByteString,
+    testBitByteString,
+    writeBitByteString,
+    findFirstSetByteString,
     -- * Conversions
     fromBuiltin,
     toBuiltin

@@ -438,6 +438,19 @@ defineBuiltinTerms = do
     defineBuiltinTerm annMayInline 'Builtins.bls12_381_mulMlResult    $ mkBuiltin PLC.Bls12_381_mulMlResult
     defineBuiltinTerm annMayInline 'Builtins.bls12_381_finalVerify    $ mkBuiltin PLC.Bls12_381_finalVerify
 
+    -- Bitwise operations
+    defineBuiltinTerm annMayInline 'Builtins.integerToByteString      $ mkBuiltin PLC.IntegerToByteString
+    defineBuiltinTerm annMayInline 'Builtins.byteStringToInteger      $ mkBuiltin PLC.ByteStringToInteger
+    defineBuiltinTerm annMayInline 'Builtins.andByteString            $ mkBuiltin PLC.AndByteString
+    defineBuiltinTerm annMayInline 'Builtins.iorByteString            $ mkBuiltin PLC.IorByteString
+    defineBuiltinTerm annMayInline 'Builtins.xorByteString            $ mkBuiltin PLC.XorByteString
+    defineBuiltinTerm annMayInline 'Builtins.complementByteString     $ mkBuiltin PLC.ComplementByteString
+    defineBuiltinTerm annMayInline 'Builtins.shiftByteString          $ mkBuiltin PLC.ShiftByteString
+    defineBuiltinTerm annMayInline 'Builtins.rotateByteString         $ mkBuiltin PLC.RotateByteString
+    defineBuiltinTerm annMayInline 'Builtins.popCountByteString       $ mkBuiltin PLC.PopCountByteString
+    defineBuiltinTerm annMayInline 'Builtins.testBitByteString        $ mkBuiltin PLC.TestBitByteString
+    defineBuiltinTerm annMayInline 'Builtins.writeBitByteString       $ mkBuiltin PLC.WriteBitByteString
+    defineBuiltinTerm annMayInline 'Builtins.findFirstSetByteString   $ mkBuiltin PLC.FindFirstSetByteString
 
 defineBuiltinTypes
     :: CompilingDefault uni fun m ann
