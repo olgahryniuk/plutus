@@ -45,14 +45,14 @@ basic = testNestedGhc "Basic" [
   , goldenUPlc "letOverAppMulti" letOverAppMulti
   ]
 
-letOverAppMulti :: CompiledCode (Integer -> Integer -> Integer -> Integer)
+letOverAppMulti :: CompiledCode (Integer -> Integer)
 letOverAppMulti = plc (Proxy @"letOverAppMulti") (
     let
       {-# NOINLINE f #-}
       f = \a b c d -> 6
       {-# NOINLINE g #-}
-      g = f
-    in g 2
+      g = f 2
+    in g 3 4
     )
 
 monoId :: CompiledCode (Integer -> Integer)
