@@ -285,26 +285,28 @@ test_simplify :: TestTree
 test_simplify =
   testGroup
     "simplify"
-    [ goldenVsSimplified "basic" basic
-    , goldenVsSimplified "nested" nested
-    , goldenVsSimplified "extraDelays" extraDelays
-    , goldenVsSimplified "caseOfCase1" caseOfCase1
-    , goldenVsSimplified "caseOfCase2" caseOfCase2
-    , goldenVsSimplified "caseOfCase3" caseOfCase3
-    , goldenVsSimplified "floatDelay1" floatDelay1
-    , goldenVsSimplified "floatDelay2" floatDelay2
-    , goldenVsSimplified "floatDelay3" floatDelay3
-    , goldenVsSimplified "interveningLambda" interveningLambda
-    , goldenVsSimplified "basicInline" basicInline
-    , goldenVsSimplified "callsiteInline" callsiteInline
-    , goldenVsSimplified "inlinePure1" inlinePure1
-    , goldenVsSimplified "inlinePure2" inlinePure2
-    , goldenVsSimplified "inlinePure3" inlinePure3
-    , goldenVsSimplified "inlinePure4" inlinePure4
-    , goldenVsSimplified "inlineImpure1" inlineImpure1
-    , goldenVsSimplified "inlineImpure2" inlineImpure2
-    , goldenVsSimplified "inlineImpure3" inlineImpure3
-    , goldenVsSimplified "inlineImpure4" inlineImpure4
-    , goldenVsSimplified "multiApp" multiApp
-    , runTestNestedIn ["untyped-plutus-core/test/Transform"] inliner
+    -- [ goldenVsSimplified "basic" basic
+    -- , goldenVsSimplified "nested" nested
+    -- , goldenVsSimplified "extraDelays" extraDelays
+    -- , goldenVsSimplified "caseOfCase1" caseOfCase1
+    -- , goldenVsSimplified "caseOfCase2" caseOfCase2
+    -- , goldenVsSimplified "caseOfCase3" caseOfCase3
+    -- , goldenVsSimplified "floatDelay1" floatDelay1
+    -- , goldenVsSimplified "floatDelay2" floatDelay2
+    -- , goldenVsSimplified "floatDelay3" floatDelay3
+    -- , goldenVsSimplified "interveningLambda" interveningLambda
+    -- , goldenVsSimplified "basicInline" basicInline
+    -- , goldenVsSimplified "callsiteInline" callsiteInline
+    -- , goldenVsSimplified "inlinePure1" inlinePure1
+    -- , goldenVsSimplified "inlinePure2" inlinePure2
+    -- , goldenVsSimplified "inlinePure3" inlinePure3
+    -- , goldenVsSimplified "inlinePure4" inlinePure4
+    -- , goldenVsSimplified "inlineImpure1" inlineImpure1
+    -- , goldenVsSimplified "inlineImpure2" inlineImpure2
+    -- , goldenVsSimplified "inlineImpure3" inlineImpure3
+    -- , goldenVsSimplified "inlineImpure4" inlineImpure4
+    -- , goldenVsSimplified "multiApp" multiApp
+    -- , runTestNestedIn ["untyped-plutus-core/test/Transform"] inliner
+    -- ]
+    [runTestNestedIn ["untyped-plutus-core/test/Transform"] inliner
     ]

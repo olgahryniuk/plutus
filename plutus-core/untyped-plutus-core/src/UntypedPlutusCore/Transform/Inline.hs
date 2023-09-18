@@ -1,11 +1,13 @@
-{-# LANGUAGE ConstraintKinds  #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs            #-}
-{-# LANGUAGE LambdaCase       #-}
-{-# LANGUAGE TemplateHaskell  #-}
-{-# LANGUAGE TypeFamilies     #-}
-{-# LANGUAGE TypeOperators    #-}
-{-# LANGUAGE ViewPatterns     #-}
+-- editorconfig-checker-disable-file
+{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE GADTs             #-}
+{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE TypeOperators     #-}
+{-# LANGUAGE ViewPatterns      #-}
 
 {- |
 An inlining pass.
@@ -45,6 +47,9 @@ import Control.Monad.Extra
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Foldable
+import GHC.IO (unsafePerformIO)
+import PlutusCore.Default
+import Unsafe.Coerce (unsafeCoerce)
 import UntypedPlutusCore.Rename (Rename (rename))
 import Witherable (wither)
 
@@ -252,7 +257,21 @@ processTerm =
                                         (termSize reconstructed)
                                         rhs
                                         processedArgsWithAnn
-                                pure $ fromMaybe reconstructed maybeInlined
+                                case maybeInlined of
+                                  Just inlined -> do
+                                    _ <- unsafePerformIO $ do
+                                      let coercedT :: Term Name DefaultUni DefaultFun a = unsafeCoerce t
+                                      putStrLn $ "inlined the term " <> display coercedT
+                                      putStrLn $ "originalTerm = " <> display $ reconstructed
+                                      putStrLn $ "inlinedTerm = " <> display $ inlined
+                                      pure (pure ())
+                                    pure (fromMaybe reconstructed maybeInlined)
+                                  Nothing -> do
+                                    unsafePerformIO $ do
+                                      putStrLn $ "Did NOT inline the term " <> display t
+                                      putStrLn $ "originalTerm = " <> display reconstructed
+                                      pure (pure ())
+                                    pure (fromMaybe reconstructed maybeInlined)
                               Nothing -> pure reconstructed
                       _ -> pure reconstructed
   where
