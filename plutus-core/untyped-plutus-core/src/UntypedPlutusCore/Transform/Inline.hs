@@ -194,12 +194,16 @@ Some examples will help:
 extractApps :: Term name uni fun a -> Maybe ([UTermDef name uni fun a], Term name uni fun a)
 extractApps = go []
   where
+    -- accumulate args in the argStack
     go argStack (Apply _ f arg) = go (arg : argStack) f
+    -- no more applications, start matching args
     go argStack t               = matchArgs argStack [] t
+    -- match the var declaration with the arg
     matchArgs (arg : rest) acc (LamAbs a n body) =
       matchArgs rest (Def (UVarDecl a n) arg : acc) body
     matchArgs [] acc t =
       if null acc then Nothing else Just (reverse acc, t)
+    -- still args but term is not a lambda abstraction, returns nothing
     matchArgs (_ : _) _ _ = Nothing
 
 -- | The inverse of 'extractApps'.
@@ -220,10 +224,17 @@ processTerm ::
   InlineM name uni fun a (Term name uni fun a)
 processTerm =
   \case
-    v@(Var _ n) -> fromMaybe v <$> substName n
+    v@(Var _ n) -> do
+      _ <- unsafePerformIO $ do
+        putStrLn $ "Just a var"
+        pure (pure ())
+      fromMaybe v <$> substName n
 
     -- See Note [Differences from PIR inliner] 3
     (extractApps -> Just (bs, t)) -> do
+      _ <- unsafePerformIO $ do
+        putStrLn $ "extractApps"
+        pure (pure ())
       bs' <- wither (processSingleBinding t) bs
       t' <- processTerm t
       pure $ restoreApps bs' t'
@@ -233,7 +244,11 @@ processTerm =
           let (hd, args) = UPLC.splitApplication t
           case args of
               -- not really an application, so hd is the term itself. Processing it will loop.
-              [] -> forMOf termSubterms t processTerm
+              [] -> do
+                _ <- unsafePerformIO $ do
+                  putStrLn $ "Not an application, args is empty"
+                  pure (pure ())
+                forMOf termSubterms t processTerm
               _ -> do
                   hd' <- processTerm hd
                   processedArgs <- forM (fmap snd args) processTerm
@@ -257,23 +272,31 @@ processTerm =
                                         (termSize reconstructed)
                                         rhs
                                         processedArgsWithAnn
+                                let
+                                        coercedT :: Term Name DefaultUni DefaultFun () = unsafeCoerce t
+                                        coercedRe :: Term Name DefaultUni DefaultFun () = unsafeCoerce reconstructed
+
                                 case maybeInlined of
                                   Just inlined -> do
                                     _ <- unsafePerformIO $ do
-                                      let coercedT :: Term Name DefaultUni DefaultFun a = unsafeCoerce t
+                                      let coercedInlined :: Term Name DefaultUni DefaultFun () = unsafeCoerce inlined
                                       putStrLn $ "inlined the term " <> display coercedT
-                                      putStrLn $ "originalTerm = " <> display $ reconstructed
-                                      putStrLn $ "inlinedTerm = " <> display $ inlined
+                                      putStrLn $ "reconstructed term " <> display coercedRe
+                                      putStrLn $ "inlined term " <> display coercedInlined
                                       pure (pure ())
                                     pure (fromMaybe reconstructed maybeInlined)
                                   Nothing -> do
                                     unsafePerformIO $ do
-                                      putStrLn $ "Did NOT inline the term " <> display t
-                                      putStrLn $ "originalTerm = " <> display reconstructed
+                                      putStrLn $ "Did NOT inline the term " <> display coercedT
+                                      putStrLn $ "originalTerm = " <> display coercedRe
                                       pure (pure ())
                                     pure (fromMaybe reconstructed maybeInlined)
                               Nothing -> pure reconstructed
-                      _ -> pure reconstructed
+                      _ -> do
+                        _ <- unsafePerformIO $ do
+                          putStrLn $ "hd' is Not a var in the map "
+                          pure (pure ())
+                        pure reconstructed
   where
     -- See Note [Renaming strategy]
     substName :: name -> InlineM name uni fun a (Maybe (Term name uni fun a))
