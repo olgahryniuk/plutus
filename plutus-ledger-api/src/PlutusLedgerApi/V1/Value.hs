@@ -317,11 +317,11 @@ checkBinRel f l r =
             These a b -> f a b
     in checkPred unThese l r
 
-{-# INLINABLE eq #-}
--- | Check whether one 'Value' is equal to another. See 'Value' for an explanation of how operations on 'Value's work.
-eq :: Value -> Value -> Bool
--- If both are zero then checkBinRel will be vacuously true, but this is fine.
-eq = checkBinRel (==)
+-- {-# INLINABLE eq #-}
+-- -- | Check whether one 'Value' is equal to another. See 'Value' for an explanation of how operations on 'Value's work.
+-- eq :: Value -> Value -> Bool
+-- -- If both are zero then checkBinRel will be vacuously true, but this is fine.
+-- eq = checkBinRel (==)
 
 {-# INLINABLE geq #-}
 -- | Check whether one 'Value' is greater than or equal to another. See 'Value' for an explanation of how operations on 'Value's work.
@@ -368,98 +368,76 @@ newtype SortedMap k v = UnsafeSortedMap
     { unSortedMap :: [(k, v)]
     }
 
-toSortedMap :: [(k, v)] -> SortedMap k [v]
-toSortedMap = Haskell.undefined
-{-# INLINE toSortedMap #-}
+emptySortedMap :: SortedMap k v
+emptySortedMap = UnsafeSortedMap []
+{-# INLINABLE emptySortedMap #-}
 
-emptyMap :: SortedMap k v
-emptyMap = UnsafeSortedMap []
-{-# INLINE emptyMap #-}
+singletonSortedMap :: k -> v -> SortedMap k [v]
+singletonSortedMap k v = UnsafeSortedMap [(k, [v])]
+{-# INLINABLE singletonSortedMap #-}
 
-singletonMap :: k -> v -> SortedMap k [v]
-singletonMap = Haskell.undefined
-{-# INLINE singletonMap #-}
+insertOneWith
+    :: forall k v w. Ord k
+    => (v -> w -> w) -> (v -> w) -> k -> v -> SortedMap k w -> SortedMap k w
+insertOneWith op inj k0 v0 = UnsafeSortedMap . go . unSortedMap where
+    go :: [(k, w)] -> [(k, w)]
+    go [] = [(k0, inj v0)]
+    go ((k, w) : kws) = case k0 `compare` k of
+        LT -> [(k0, inj v0)]
+        EQ -> [(k0, op v0 w)]
+        GT -> (k, w) : go kws
+{-# INLINE insertOneWith #-}
 
-insertOne :: k -> v -> SortedMap k [v] -> SortedMap k [v]
-insertOne = Haskell.undefined
+insertOne :: Ord k => k -> v -> SortedMap k [v] -> SortedMap k [v]
+insertOne = insertOneWith (:) (: [])
 {-# INLINE insertOne #-}
+
+-- TODO:
+-- backward mergesort + cutoff
+toSortedMapWith :: forall k v w. Ord k => (v -> w -> w) -> (v -> w) -> [(k, v)] -> SortedMap k w
+toSortedMapWith act inj = go where
+    go :: [(k, v)] -> SortedMap k w
+    go []             = UnsafeSortedMap []
+    go ((k, v) : kvs) = insertOneWith act inj k v $ go kvs
+{-# INLINE toSortedMapWith #-}
+
+mergeSortedMapWith
+    :: forall k v. Ord k
+    => (v -> v -> v) -> SortedMap k v -> SortedMap k v -> SortedMap k v
+mergeSortedMapWith op (UnsafeSortedMap kvs1_0) (UnsafeSortedMap kvs2_0) =
+    UnsafeSortedMap $ go kvs1_0 kvs2_0
+  where
+    go :: [(k, v)] -> [(k, v)] -> [(k, v)]
+    go []                kvs2              = kvs2
+    go kvs1              []                = kvs1
+    go ((k1, v1) : kvs1) ((k2, v2) : kvs2) = case k1 `compare` k2 of
+        LT -> (k1, v1) : go kvs1 ((k2, v2) : kvs2)
+        EQ -> (k1, op v1 v2) : go kvs1 kvs2
+        GT -> (k2, v2) : go ((k1, v1) : kvs1) kvs2
+
+toSortedMap :: Ord k => [(k, v)] -> SortedMap k [v]
+toSortedMap = toSortedMapWith (:) (: [])
+{-# INLINE toSortedMap #-}
 
 data MatchResult a
     = MatchSuccess
     | MatchFailure a a
 
-instance Functor MatchResult where
-    fmap _ MatchSuccess       = MatchSuccess
-    fmap f (MatchFailure x y) = MatchFailure (f x) (f y)
-    {-# INLINE fmap #-}
-
--- matchKVs
---     :: forall k v w. Eq k
---     => ([(k, v)] -> SortedMap k w)
---     -> (v -> v -> MatchResult w)
---     -> [(k, v)]
---     -> [(k, v)]
---     -> MatchResult (SortedMap k w)
--- matchKVs embed matchV = go where
---     go :: [(k, v)] -> [(k, v)] -> MatchResult (SortedMap k w)
---     go []                []                = MatchSuccess
---     go []                kvs2              = MatchFailure emptyMap (embed kvs2)
---     go kvs1              []                = MatchFailure (embed kvs1) emptyMap
---     go ((k1, v1) : kvs1) ((k2, v2) : kvs2)
---         | k1 == k2 = case go kvs1 kvs2 of
---             MatchSuccess -> singletonMap k1 <$> matchV v1 v2
---             MatchFailure kvs1' kvs2' ->
---                 MatchFailure
---                     (insertOne k1 v1 kvs1')
---                     (insertOne k1 v2 kvs2')
---         | otherwise =
---             MatchFailure
---                 (insertOne k1 v1 $ embed kvs1)
---                 (insertOne k2 v2 $ embed kvs2)
--- {-# INLINE matchKVs #-}
-
--- {-
--- (1, [2, 3, 5]) (4, [6, 8, 9])
--- (1, [2, 3, 5]) (3, [6, 8, 9])
-
--- -}
-
--- matchEq :: Eq a => a -> a -> MatchResult a
--- matchEq x y = if x == y then MatchSuccess else MatchFailure x y
-
--- instance Eq Value where
---     Value (Map.toList -> currs1) == Value (Map.toList -> currs2) =
---         case matchKVs _ matchMap currs1 currs2 of
---             MatchSuccess                 -> True
---             MatchFailure currs1' currs2' -> _ currs1' currs2'
---       where
---         matchMap
---             :: Map.Map TokenName Integer
---             -> Map.Map TokenName Integer
---             -> MatchResult (SortedMap TokenName Integer)
---         matchMap (Map.toList -> tokens1) (Map.toList -> tokens2) =
---             matchKVs toSortedMap matchEq tokens1 tokens2
-
-isMatchSuccess :: MatchResult a -> Bool
-isMatchSuccess MatchSuccess       = True
-isMatchSuccess (MatchFailure _ _) = False
-{-# INLINE isMatchSuccess #-}
-
 matchKVs
-    :: forall k v. Eq k
+    :: forall k v. Ord k
     => (v -> v -> Bool) -> [(k, v)] -> [(k, v)] -> MatchResult (SortedMap k [v])
 matchKVs structEqV = go where
     go :: [(k, v)] -> [(k, v)] -> MatchResult (SortedMap k [v])
     go []                []                = MatchSuccess
-    go []                kvs2              = MatchFailure emptyMap (toSortedMap kvs2)
-    go kvs1              []                = MatchFailure (toSortedMap kvs1) emptyMap
+    go []                kvs2              = MatchFailure emptySortedMap (toSortedMap kvs2)
+    go kvs1              []                = MatchFailure (toSortedMap kvs1) emptySortedMap
     go ((k1, v1) : kvs1) ((k2, v2) : kvs2)
         | k1 == k2 = case go kvs1 kvs2 of
             MatchSuccess -> if structEqV v1 v2
                 then MatchSuccess
                 else MatchFailure
-                    (singletonMap k1 v1)
-                    (singletonMap k1 v2)
+                    (singletonSortedMap k1 v1)
+                    (singletonSortedMap k1 v2)
             MatchFailure kvs1' kvs2' ->
                 MatchFailure
                     (insertOne k1 v1 kvs1')
@@ -469,10 +447,6 @@ matchKVs structEqV = go where
                 (insertOne k1 v1 $ toSortedMap kvs1)
                 (insertOne k2 v2 $ toSortedMap kvs2)
 {-# INLINE matchKVs #-}
-
-matchEq :: Eq a => a -> a -> MatchResult a
-matchEq x y = if x == y then MatchSuccess else MatchFailure x y
-{-# INLINE matchEq #-}
 
 pointwiseEqWith :: forall k v. Eq k => (v -> v -> Bool) -> SortedMap k v -> SortedMap k v -> Bool
 pointwiseEqWith eqV (UnsafeSortedMap kvs01) (UnsafeSortedMap kvs02) = go kvs01 kvs02 where
@@ -486,82 +460,41 @@ pointwiseEqWith eqV (UnsafeSortedMap kvs01) (UnsafeSortedMap kvs02) = go kvs01 k
                 then eqV v1 v2
                 else False
             else False
-{-# INLINE pointwiseEqWith #-}
+{-# INLINABLE pointwiseEqWith #-}
 
-sortFoldMaps :: forall k v w. (v -> w -> w) -> w -> [Map.Map k v] -> SortedMap k w
-sortFoldMaps f z = go where
-    goMaps :: [Map.Map k v] -> SortedMap k w
-    goMaps []       = z
-    goMaps (m : ms) = goMap
+sortFoldMaps
+    :: forall k v w. Ord k
+    => (w -> w -> w) -> (v -> w -> w) -> (v -> w) -> [Map.Map k v] -> SortedMap k w
+sortFoldMaps op act inj = go where
+    go :: [Map.Map k v] -> SortedMap k w
+    go []                           = emptySortedMap
+    go ((Map.toList -> kvs) : maps) = mergeSortedMapWith op (toSortedMapWith act inj kvs) (go maps)
+{-# INLINE sortFoldMaps #-}
 
-    goMap :: [Map.Map k v] -> SortedMap k w
+sortSumMaps :: Ord k => [Map.Map k Integer] -> SortedMap k Integer
+sortSumMaps = sortFoldMaps (+) (+) id
+{-# INLINE sortSumMaps #-}
 
-sortSumMaps :: [Map.Map k Integer] -> SortedMap k Integer
-sortSumMaps = sortFoldMaps (+) 0
+eq :: Value -> Value -> Bool
+eq (Value (Map.toList -> currs1)) (Value (Map.toList -> currs2)) =
+    case matchKVs structEqMap currs1 currs2 of
+        MatchSuccess                 -> True
+        MatchFailure currs1' currs2' ->
+            pointwiseEqWith eqMaps currs1' currs2'
+  where
+    structEqMap :: Map.Map TokenName Integer -> Map.Map TokenName Integer -> Bool
+    structEqMap (Map.toList -> tokens1) (Map.toList -> tokens2) =
+        pointwiseEqWith (==) (UnsafeSortedMap tokens1) (UnsafeSortedMap tokens2)
 
+    eqMaps :: [Map.Map TokenName Integer] -> [Map.Map TokenName Integer] -> Bool
+    eqMaps maps1 maps2 = pointwiseEqWith (==) (sortSumMaps maps1) (sortSumMaps maps2)
+
+instance Haskell.Eq Value where
+    (==) = eq
 
 instance Eq Value where
-    Value (Map.toList -> currs1) == Value (Map.toList -> currs2) =
-        case matchKVs structEqMap currs1 currs2 of
-            MatchSuccess                 -> True
-            MatchFailure currs1' currs2' ->
-                pointwiseEqWith eqMaps currs1' currs2'
-      where
-        structEqMap :: Map.Map TokenName Integer -> Map.Map TokenName Integer -> Bool
-        structEqMap (Map.toList -> tokens1) (Map.toList -> tokens2) = tokens1 == tokens2
-
-        eqMaps :: [Map.Map TokenName Integer] -> [Map.Map TokenName Integer] -> Bool
-        eqMaps maps1 maps2 = pointwiseEqWith (==) (sumMaps maps1) (sumMaps maps2)
-
--- matchKVs
---     :: forall k v. Eq k
---     => (k -> v -> v -> MatchResult (SortedMap k v))
---     -> [(k, v)]
---     -> [(k, v)]
---     -> MatchResult (SortedMap k v)
--- matchKVs matchV = go where
---     go :: [(k, v)] -> [(k, v)] -> MatchResult (SortedMap k v)
---     go []                []                = MatchSuccess
---     go []                kvs2              = MatchFailure emptyMap (toSortedMap kvs2)
---     go kvs1              []                = MatchFailure (toSortedMap kvs1) emptyMap
---     go ((k1, v1) : kvs1) ((k2, v2) : kvs2)
---         | k1 == k2 = case go kvs1 kvs2 of
---             MatchSuccess -> matchV k1 v1 v2
---             MatchFailure kvs1' kvs2' ->
---                 MatchFailure
---                     (insertOne k1 v1 kvs1')
---                     (insertOne k1 v2 kvs2')
---         | otherwise =
---             MatchFailure
---                 (insertOne k1 v1 $ toSortedMap kvs1)
---                 (insertOne k2 v2 $ toSortedMap kvs2)
--- {-# INLINE matchKVs #-}
-
--- matchEq :: Eq a => a -> a -> MatchResult a
--- matchEq x y = if x == y then MatchSuccess else MatchFailure x y
-
--- instance Eq Value where
---     Value (Map.toList -> currs1) == Value (Map.toList -> currs2) =
---         case matchKVs matchMap currs1 currs2 of
---             MatchSuccess                 -> True
---             MatchFailure currs1' currs2' -> _ currs1' currs2'
---       where
---         matchMap
---             :: CurrencySymbol
---             -> Map.Map TokenName Integer
---             -> Map.Map TokenName Integer
---             -> MatchResult (SortedMap CurrencySymbol (Map.Map TokenName Integer))
---         matchMap curr (Map.toList -> tokens1) (Map.toList -> tokens2) =
---             _ $ matchKVs _ tokens1 tokens2
-
--- newtype Value = Value { getValue :: Map.Map CurrencySymbol (Map.Map TokenName Integer) }
-
--- instance Haskell.Eq Value where
---     (==) = eq
-
--- instance Eq Value where
---     {-# INLINABLE (==) #-}
---     (==) = eq
+    {-# INLINABLE (==) #-}
+    (==) = eq
 
 makeLift ''CurrencySymbol
 makeLift ''TokenName
