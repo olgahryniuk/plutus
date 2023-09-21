@@ -225,15 +225,25 @@ processTerm ::
 processTerm =
   \case
     v@(Var _ n) -> do
+      varInMap <- substName n
       _ <- unsafePerformIO $ do
-        putStrLn $ "Just a var"
+        let coercedT :: Term Name DefaultUni DefaultFun () = unsafeCoerce v
+        putStrLn $ "Processing Just a var " <> display coercedT
+        case varInMap of
+          Nothing  -> putStrLn $ "substitution map does not contain the var "
+          Just res -> putStrLn $ "substitution map does contain the var "
         pure (pure ())
       fromMaybe v <$> substName n
 
     -- See Note [Differences from PIR inliner] 3
-    (extractApps -> Just (bs, t)) -> do
+    appT@(extractApps -> Just (bs, t)) -> do
       _ <- unsafePerformIO $ do
-        putStrLn $ "extractApps"
+        let
+          coercedT :: Term Name DefaultUni DefaultFun () = unsafeCoerce t
+          coercedAppT :: Term Name DefaultUni DefaultFun () = unsafeCoerce appT
+        putStrLn $ "processing the term " <> display coercedAppT
+        putStrLn $ "extractApps, resulting t is " <> display coercedT
+        -- putStrLn $ "Resulting bs is " <> show coercedBs
         pure (pure ())
       bs' <- wither (processSingleBinding t) bs
       t' <- processTerm t
@@ -246,6 +256,9 @@ processTerm =
               -- not really an application, so hd is the term itself. Processing it will loop.
               [] -> do
                 _ <- unsafePerformIO $ do
+                  let
+                    coercedT :: Term Name DefaultUni DefaultFun () = unsafeCoerce t
+                  putStrLn $ "t pattern, processing the term " <> display coercedT
                   putStrLn $ "Not an application, args is empty"
                   pure (pure ())
                 forMOf termSubterms t processTerm
