@@ -1,1 +1,4 @@
-[ (force (force (force (force (force g_i1))))) (con integer 2) ]
+[
+  (lam f (lam d (con integer 6)))
+  (lam a (lam b (lam c (lam d (con integer 6)))))
+]
