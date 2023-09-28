@@ -1,24 +1,135 @@
-(letrec
+(let
+    data Bool | Bool_match where
+      True : Bool
+      False : Bool
+    data (Maybe :: * -> *) a | Maybe_match where
+      Just : a -> Maybe a
+      Nothing : Maybe a
+    data (Tuple2 :: * -> * -> *) a b | Tuple2_match where
+      Tuple2 : a -> b -> Tuple2 a b
+  in
+  letrec
     data (List :: * -> *) a | List_match where
       Nil : List a
       Cons : a -> List a -> List a
   in
-  letrec
-    !foldr : all a b. (a -> b -> b) -> b -> List a -> b
-      = /\a b ->
-          \(f : a -> b -> b) (acc : b) (l : List a) ->
-            List_match
-              {a}
-              l
-              {all dead. b}
-              (/\dead -> acc)
-              (\(x : a) (xs : List a) -> /\dead -> f x (foldr {a} {b} f acc xs))
-              {all dead. dead}
-  in
   let
-    data Bool | Bool_match where
-      True : Bool
-      False : Bool
+    data ChessSet | ChessSet_match where
+      Board :
+        integer ->
+        integer ->
+        Maybe (Tuple2 integer integer) ->
+        List (Tuple2 integer integer) ->
+        ChessSet
+    !`$fEqChessSet_$c==` : ChessSet -> ChessSet -> Bool
+      = \(ds : ChessSet) (ds : ChessSet) -> True
+    data Ordering | Ordering_match where
+      EQ : Ordering
+      GT : Ordering
+      LT : Ordering
+    data (Ord :: * -> *) a | Ord_match where
+      CConsOrd :
+        (\a -> a -> a -> Bool) a ->
+        (a -> a -> Ordering) ->
+        (a -> a -> Bool) ->
+        (a -> a -> Bool) ->
+        (a -> a -> Bool) ->
+        (a -> a -> Bool) ->
+        (a -> a -> a) ->
+        (a -> a -> a) ->
+        Ord a
+    !v : Ord ChessSet
+      = CConsOrd
+          {ChessSet}
+          `$fEqChessSet_$c==`
+          (\(eta : ChessSet) (eta : ChessSet) -> EQ)
+          (\(x : ChessSet) (y : ChessSet) -> False)
+          `$fEqChessSet_$c==`
+          (\(x : ChessSet) (y : ChessSet) -> False)
+          `$fEqChessSet_$c==`
+          (\(x : ChessSet) (y : ChessSet) -> y)
+          (\(x : ChessSet) (y : ChessSet) -> x)
+    !equalsInteger : integer -> integer -> Bool
+      = \(x : integer) (y : integer) ->
+          ifThenElse {Bool} (equalsInteger x y) True False
+    !v : Ord integer
+      = CConsOrd
+          {integer}
+          equalsInteger
+          (\(eta : integer) (eta : integer) ->
+             Bool_match
+               (ifThenElse {Bool} (equalsInteger eta eta) True False)
+               {all dead. Ordering}
+               (/\dead -> EQ)
+               (/\dead ->
+                  Bool_match
+                    (ifThenElse
+                       {Bool}
+                       (lessThanEqualsInteger eta eta)
+                       True
+                       False)
+                    {all dead. Ordering}
+                    (/\dead -> LT)
+                    (/\dead -> GT)
+                    {all dead. dead})
+               {all dead. dead})
+          (\(x : integer) (y : integer) ->
+             ifThenElse {Bool} (lessThanInteger x y) True False)
+          (\(x : integer) (y : integer) ->
+             ifThenElse {Bool} (lessThanEqualsInteger x y) True False)
+          (\(x : integer) (y : integer) ->
+             ifThenElse {Bool} (lessThanEqualsInteger x y) False True)
+          (\(x : integer) (y : integer) ->
+             ifThenElse {Bool} (lessThanInteger x y) False True)
+          (\(x : integer) (y : integer) ->
+             Bool_match
+               (ifThenElse {Bool} (lessThanEqualsInteger x y) True False)
+               {all dead. integer}
+               (/\dead -> y)
+               (/\dead -> x)
+               {all dead. dead})
+          (\(x : integer) (y : integer) ->
+             Bool_match
+               (ifThenElse {Bool} (lessThanEqualsInteger x y) True False)
+               {all dead. integer}
+               (/\dead -> x)
+               (/\dead -> y)
+               {all dead. dead})
+  in
+  letrec
+    !go : List (Tuple2 integer ChessSet) -> List ChessSet
+      = \(ds : List (Tuple2 integer ChessSet)) ->
+          List_match
+            {Tuple2 integer ChessSet}
+            ds
+            {all dead. List ChessSet}
+            (/\dead -> Nil {ChessSet})
+            (\(x : Tuple2 integer ChessSet)
+              (xs : List (Tuple2 integer ChessSet)) ->
+               /\dead ->
+                 Cons
+                   {ChessSet}
+                   (Tuple2_match
+                      {integer}
+                      {ChessSet}
+                      x
+                      {ChessSet}
+                      (\(ds : integer) (b : ChessSet) -> b))
+                   (go xs))
+            {all dead. dead}
+  in
+  letrec
+    !go : List (Tuple2 integer ChessSet) -> List (Tuple2 integer ChessSet)
+      = \(ds : List (Tuple2 integer ChessSet)) ->
+          List_match
+            {Tuple2 integer ChessSet}
+            ds
+            {all dead. List (Tuple2 integer ChessSet)}
+            (/\dead -> Nil {Tuple2 integer ChessSet})
+            (\(x : Tuple2 integer ChessSet)
+              (xs : List (Tuple2 integer ChessSet)) ->
+               /\dead -> Cons {Tuple2 integer ChessSet} x (go xs))
+            {all dead. dead}
   in
   letrec
     !depthSearch :
@@ -108,12 +219,19 @@
                                      (\(ds : a) (t : List a) -> /\dead -> t)
                                      {all dead. dead}
                              in
-                             foldr
-                               {a}
-                               {List a}
-                               (\(ds : a) (ds : List a) -> Cons {a} ds ds)
-                               q
-                               list)
+                             letrec
+                               !go : List a -> List a
+                                 = \(ds : List a) ->
+                                     List_match
+                                       {a}
+                                       ds
+                                       {all dead. List a}
+                                       (/\dead -> q)
+                                       (\(x : a) (xs : List a) ->
+                                          /\dead -> Cons {a} x (go xs))
+                                       {all dead. dead}
+                             in
+                             go list)
                              growFn
                              finFn)
                         {all dead. dead})
@@ -121,21 +239,6 @@
               {all dead. dead}
   in
   let
-    data Ordering | Ordering_match where
-      EQ : Ordering
-      GT : Ordering
-      LT : Ordering
-    data (Ord :: * -> *) a | Ord_match where
-      CConsOrd :
-        (\a -> a -> a -> Bool) a ->
-        (a -> a -> Ordering) ->
-        (a -> a -> Bool) ->
-        (a -> a -> Bool) ->
-        (a -> a -> Bool) ->
-        (a -> a -> Bool) ->
-        (a -> a -> a) ->
-        (a -> a -> a) ->
-        Ord a
     !`$p1Ord` : all a. Ord a -> (\a -> a -> a -> Bool) a
       = /\a ->
           \(v : Ord a) ->
@@ -168,20 +271,6 @@
                 (v : a -> a -> a)
                 (v : a -> a -> a) ->
                  v)
-    data (Maybe :: * -> *) a | Maybe_match where
-      Just : a -> Maybe a
-      Nothing : Maybe a
-    data (Tuple2 :: * -> * -> *) a b | Tuple2_match where
-      Tuple2 : a -> b -> Tuple2 a b
-    data ChessSet | ChessSet_match where
-      Board :
-        integer ->
-        integer ->
-        Maybe (Tuple2 integer integer) ->
-        List (Tuple2 integer integer) ->
-        ChessSet
-    !`$fEqChessSet_$c==` : ChessSet -> ChessSet -> Bool
-      = \(ds : ChessSet) (ds : ChessSet) -> True
   in
   letrec
     !quickSort : all a. Ord a -> List a -> List a
@@ -328,27 +417,20 @@
                      xs)
               {all dead. dead}
   in
-  letrec
+  let
     !interval : integer -> integer -> List integer
       = \(a : integer) (b : integer) ->
-          Bool_match
-            (ifThenElse {Bool} (lessThanEqualsInteger a b) False True)
-            {all dead. List integer}
-            (/\dead -> Nil {integer})
-            (/\dead -> Cons {integer} a (interval (addInteger 1 a) b))
-            {all dead. dead}
-  in
-  letrec
-    !repl : integer -> integer -> List integer
-      = \(n : integer) (a : integer) ->
-          Bool_match
-            (ifThenElse {Bool} (equalsInteger 0 n) True False)
-            {all dead. List integer}
-            (/\dead -> Nil {integer})
-            (/\dead -> Cons {integer} a (repl (subtractInteger n 1) a))
-            {all dead. dead}
-  in
-  let
+          letrec
+            !go : integer -> List integer
+              = \(a : integer) ->
+                  Bool_match
+                    (ifThenElse {Bool} (lessThanEqualsInteger a b) False True)
+                    {all dead. List integer}
+                    (/\dead -> Nil {integer})
+                    (/\dead -> Cons {integer} a (go (addInteger 1 a)))
+                    {all dead. dead}
+          in
+          go a
     !`$fFoldableNil_$cfoldr` : all a b. (a -> b -> b) -> b -> List a -> b
       = /\a b ->
           \(f : a -> b -> b) (z : b) ->
@@ -373,27 +455,7 @@
               (n : integer)
               (f : Maybe (Tuple2 integer integer))
               (ts : List (Tuple2 integer integer)) ->
-               let
-                 !dt : integer = addInteger 1 n
-                 !dt : List (Tuple2 integer integer)
-                   = Cons {Tuple2 integer integer} t ts
-               in
-               Board s dt f dt)
-  in
-  letrec
-    !map : all a b. (a -> b) -> List a -> List b
-      = /\a b ->
-          \(f : a -> b) (l : List a) ->
-            List_match
-              {a}
-              l
-              {all dead. List b}
-              (/\dead -> Nil {b})
-              (\(x : a) (xs : List a) ->
-                 /\dead -> Cons {b} (f x) (map {a} {b} f xs))
-              {all dead. dead}
-  in
-  let
+               Board s (addInteger 1 n) f (Cons {Tuple2 integer integer} t ts))
     !length :
        all (t :: * -> *) a.
          (\(t :: * -> *) -> all a b. (a -> b -> b) -> b -> t a -> b) t ->
@@ -401,15 +463,11 @@
          integer
       = /\(t :: * -> *) a ->
           \(`$dFoldable` :
-              (\(t :: * -> *) -> all a b. (a -> b -> b) -> b -> t a -> b) t)
-           (eta : t a) ->
+              (\(t :: * -> *) -> all a b. (a -> b -> b) -> b -> t a -> b) t) ->
             `$dFoldable`
               {a}
-              {integer -> integer}
-              (\(a : a) (g : integer -> integer) (b : integer) ->
-                 g (addInteger 1 b))
-              (\(x : integer) -> x)
-              eta
+              {integer}
+              (\(ds : a) (acc : integer) -> addInteger 1 acc)
               0
     data Direction | Direction_match where
       DL : Direction
@@ -522,9 +580,6 @@
                       (addInteger 1 x)
                       (subtractInteger y 2)))
             {all dead. dead}
-    !equalsInteger : integer -> integer -> Bool
-      = \(x : integer) (y : integer) ->
-          ifThenElse {Bool} (equalsInteger x y) True False
   in
   letrec
     !notIn : all a. (\a -> a -> a -> Bool) a -> a -> List a -> Bool
@@ -713,10 +768,7 @@
                        ts
                  !`$j` : List (Tuple2 integer integer) -> ChessSet
                    = \(ts' : List (Tuple2 integer integer)) ->
-                       let
-                         !dt : integer = subtractInteger n 1
-                       in
-                       Board s dt f' ts'
+                       Board s (subtractInteger n 1) f' ts'
                in
                letrec
                  !rev :
@@ -810,26 +862,47 @@
                            (ipv : integer)
                            (ipv : Maybe (Tuple2 integer integer))
                            (ipv : List (Tuple2 integer integer)) ->
-                            map
-                              {Direction}
-                              {ChessSet}
-                              (\(dir : Direction) ->
-                                 addPiece
-                                   (move
-                                      dir
-                                      (List_match
-                                         {Tuple2 integer integer}
-                                         ipv
-                                         {all dead. Tuple2 integer integer}
-                                         (/\dead ->
-                                            error {Tuple2 integer integer})
-                                         (\(t : Tuple2 integer integer)
-                                           (ds :
-                                              List (Tuple2 integer integer)) ->
-                                            /\dead -> t)
-                                         {all dead. dead}))
-                                   board)
-                              (possibleMoves board))
+                            letrec
+                              !go : List Direction -> List ChessSet
+                                = \(ds : List Direction) ->
+                                    List_match
+                                      {Direction}
+                                      ds
+                                      {all dead. List ChessSet}
+                                      (/\dead -> Nil {ChessSet})
+                                      (\(x : Direction) (xs : List Direction) ->
+                                         /\dead ->
+                                           Cons
+                                             {ChessSet}
+                                             (addPiece
+                                                (move
+                                                   x
+                                                   (List_match
+                                                      {Tuple2 integer integer}
+                                                      ipv
+                                                      {all dead.
+                                                         Tuple2 integer integer}
+                                                      (/\dead ->
+                                                         error
+                                                           {Tuple2
+                                                              integer
+                                                              integer})
+                                                      (\(t :
+                                                           Tuple2
+                                                             integer
+                                                             integer)
+                                                        (ds :
+                                                           List
+                                                             (Tuple2
+                                                                integer
+                                                                integer)) ->
+                                                         /\dead -> t)
+                                                      {all dead. dead}))
+                                                board)
+                                             (go xs))
+                                      {all dead. dead}
+                            in
+                            go (possibleMoves board))
                  in
                  go eta)
   in
@@ -856,23 +929,6 @@
                             (Tuple2 {a} {b} ipv ipv)
                             (zip {a} {b} ipv ipv))
                      {all dead. dead})
-              {all dead. dead}
-  in
-  letrec
-    !zipConst : all a b. a -> List b -> List (Tuple2 a b)
-      = /\a b ->
-          \(ds : a) (ds : List b) ->
-            List_match
-              {b}
-              ds
-              {all dead. List (Tuple2 a b)}
-              (/\dead -> Nil {Tuple2 a b})
-              (\(b : b) (bs : List b) ->
-                 /\dead ->
-                   Cons
-                     {Tuple2 a b}
-                     (Tuple2 {a} {b} ds b)
-                     (zipConst {a} {b} ds bs))
               {all dead. dead}
   in
   \(depth : integer)
@@ -934,51 +990,42 @@
                                              ds
                                              {all dead. a}
                                              (/\dead -> ds)
-                                             (\(y : integer)
-                                               (ys : List integer) ->
-                                                /\dead ->
-                                                  let
-                                                    !ds : a = go ys
-                                                  in
-                                                  c
-                                                    (let
-                                                      !st :
-                                                         Tuple2 integer integer
-                                                        = Tuple2
-                                                            {integer}
-                                                            {integer}
-                                                            y
-                                                            y
+                                             (\(y : integer) ->
+                                                let
+                                                  !t : Tuple2 integer integer
+                                                    = Tuple2
+                                                        {integer}
+                                                        {integer}
+                                                        y
+                                                        y
+                                                in
+                                                \(ys : List integer) ->
+                                                  /\dead ->
+                                                    let
+                                                      !ds : a = go ys
                                                     in
-                                                    Bool_match
-                                                      (ifThenElse
-                                                         {Bool}
-                                                         (equalsInteger
-                                                            0
-                                                            (remainderInteger
-                                                               boardSize
-                                                               2))
-                                                         True
-                                                         False)
-                                                      {all dead. ChessSet}
-                                                      (/\dead ->
-                                                         let
-                                                           !dt :
-                                                              Maybe
-                                                                (Tuple2
-                                                                   integer
-                                                                   integer)
-                                                             = Just
+                                                    c
+                                                      (Bool_match
+                                                         (ifThenElse
+                                                            {Bool}
+                                                            (equalsInteger
+                                                               0
+                                                               (remainderInteger
+                                                                  boardSize
+                                                                  2))
+                                                            True
+                                                            False)
+                                                         {all dead. ChessSet}
+                                                         (/\dead ->
+                                                            Board
+                                                              boardSize
+                                                              1
+                                                              (Just
                                                                  {Tuple2
                                                                     integer
                                                                     integer}
-                                                                 st
-                                                           !dt :
-                                                              List
-                                                                (Tuple2
-                                                                   integer
-                                                                   integer)
-                                                             = (let
+                                                                 t)
+                                                              ((let
                                                                    a
                                                                      = Tuple2
                                                                          integer
@@ -1010,17 +1057,11 @@
                                                                         a ->
                                                                         a)
                                                                      (n : a) ->
-                                                                      c st n)
-                                                         in
-                                                         Board
-                                                           boardSize
-                                                           1
-                                                           dt
-                                                           dt)
-                                                      (/\dead ->
-                                                         error {ChessSet})
-                                                      {all dead. dead})
-                                                    ds)
+                                                                      c t n)))
+                                                         (/\dead ->
+                                                            error {ChessSet})
+                                                         {all dead. dead})
+                                                      ds)
                                              {all dead. dead}
                                    in
                                    let
@@ -1042,17 +1083,23 @@
           zip
             {integer}
             {ChessSet}
-            (repl numStarts (subtractInteger 1 numStarts))
+            (let
+              !x : integer = subtractInteger 1 numStarts
+            in
+            letrec
+              !go : integer -> List integer
+                = \(n : integer) ->
+                    Bool_match
+                      (ifThenElse {Bool} (lessThanEqualsInteger n 0) True False)
+                      {all dead. List integer}
+                      (/\dead -> Nil {integer})
+                      (/\dead -> Cons {integer} x (go (subtractInteger n 1)))
+                      {all dead. dead}
+            in
+            go numStarts)
             l
       in
-      foldr
-        {Tuple2 integer ChessSet}
-        {List (Tuple2 integer ChessSet)}
-        (\(ds : Tuple2 integer ChessSet)
-          (ds : List (Tuple2 integer ChessSet)) ->
-           Cons {Tuple2 integer ChessSet} ds ds)
-        (Nil {Tuple2 integer ChessSet})
-        list)
+      go list)
       (\(ds : Tuple2 integer ChessSet) ->
          Tuple2_match
            {integer}
@@ -1060,10 +1107,26 @@
            ds
            {List (Tuple2 integer ChessSet)}
            (\(x : integer) (y : ChessSet) ->
-              zipConst
-                {integer}
-                {ChessSet}
-                (addInteger 1 x)
+              (let
+                  !a : integer = addInteger 1 x
+                in
+                letrec
+                  !go : List ChessSet -> List (Tuple2 integer ChessSet)
+                    = \(ds : List ChessSet) ->
+                        List_match
+                          {ChessSet}
+                          ds
+                          {all dead. List (Tuple2 integer ChessSet)}
+                          (/\dead -> Nil {Tuple2 integer ChessSet})
+                          (\(x : ChessSet) (xs : List ChessSet) ->
+                             /\dead ->
+                               Cons
+                                 {Tuple2 integer ChessSet}
+                                 (Tuple2 {integer} {ChessSet} a x)
+                                 (go xs))
+                          {all dead. dead}
+                in
+                \(eta : List ChessSet) -> go eta)
                 (ChessSet_match
                    y
                    {List ChessSet}
@@ -1131,407 +1194,320 @@
                             (ifThenElse {Bool} (equalsInteger 0 l) True False)
                             {all dead. List ChessSet}
                             (/\dead ->
-                               map
-                                 {Tuple2 integer ChessSet}
-                                 {ChessSet}
-                                 (\(ds : Tuple2 integer ChessSet) ->
-                                    Tuple2_match
-                                      {integer}
-                                      {ChessSet}
-                                      ds
-                                      {ChessSet}
-                                      (\(ds : integer) (b : ChessSet) -> b))
+                               go
                                  (quickSort
                                     {Tuple2 integer ChessSet}
-                                    (let
-                                      !v : Ord integer
-                                        = CConsOrd
+                                    (CConsOrd
+                                       {Tuple2 integer ChessSet}
+                                       (\(eta : Tuple2 integer ChessSet)
+                                         (eta : Tuple2 integer ChessSet) ->
+                                          Tuple2_match
                                             {integer}
-                                            equalsInteger
-                                            (\(eta : integer) (eta : integer) ->
-                                               Bool_match
-                                                 (ifThenElse
-                                                    {Bool}
-                                                    (equalsInteger eta eta)
-                                                    True
-                                                    False)
-                                                 {all dead. Ordering}
-                                                 (/\dead -> EQ)
-                                                 (/\dead ->
-                                                    Bool_match
-                                                      (ifThenElse
-                                                         {Bool}
-                                                         (lessThanEqualsInteger
-                                                            eta
-                                                            eta)
-                                                         True
-                                                         False)
-                                                      {all dead. Ordering}
-                                                      (/\dead -> LT)
-                                                      (/\dead -> GT)
-                                                      {all dead. dead})
-                                                 {all dead. dead})
-                                            (\(x : integer) (y : integer) ->
-                                               ifThenElse
-                                                 {Bool}
-                                                 (lessThanInteger x y)
-                                                 True
-                                                 False)
-                                            (\(x : integer) (y : integer) ->
-                                               ifThenElse
-                                                 {Bool}
-                                                 (lessThanEqualsInteger x y)
-                                                 True
-                                                 False)
-                                            (\(x : integer) (y : integer) ->
-                                               ifThenElse
-                                                 {Bool}
-                                                 (lessThanEqualsInteger x y)
-                                                 False
-                                                 True)
-                                            (\(x : integer) (y : integer) ->
-                                               ifThenElse
-                                                 {Bool}
-                                                 (lessThanInteger x y)
-                                                 False
-                                                 True)
-                                            (\(x : integer) (y : integer) ->
-                                               Bool_match
-                                                 (ifThenElse
-                                                    {Bool}
-                                                    (lessThanEqualsInteger x y)
-                                                    True
-                                                    False)
-                                                 {all dead. integer}
-                                                 (/\dead -> y)
-                                                 (/\dead -> x)
-                                                 {all dead. dead})
-                                            (\(x : integer) (y : integer) ->
-                                               Bool_match
-                                                 (ifThenElse
-                                                    {Bool}
-                                                    (lessThanEqualsInteger x y)
-                                                    True
-                                                    False)
-                                                 {all dead. integer}
-                                                 (/\dead -> x)
-                                                 (/\dead -> y)
-                                                 {all dead. dead})
-                                      !v : Ord ChessSet
-                                        = CConsOrd
                                             {ChessSet}
-                                            `$fEqChessSet_$c==`
-                                            (\(eta : ChessSet)
-                                              (eta : ChessSet) ->
-                                               EQ)
-                                            (\(x : ChessSet) (y : ChessSet) ->
-                                               False)
-                                            `$fEqChessSet_$c==`
-                                            (\(x : ChessSet) (y : ChessSet) ->
-                                               False)
-                                            `$fEqChessSet_$c==`
-                                            (\(x : ChessSet) (y : ChessSet) ->
-                                               y)
-                                            (\(x : ChessSet) (y : ChessSet) ->
-                                               x)
-                                    in
-                                    CConsOrd
-                                      {Tuple2 integer ChessSet}
-                                      (\(eta : Tuple2 integer ChessSet)
-                                        (eta : Tuple2 integer ChessSet) ->
-                                         Tuple2_match
-                                           {integer}
-                                           {ChessSet}
-                                           eta
-                                           {Bool}
-                                           (\(a : integer) (b : ChessSet) ->
-                                              Tuple2_match
-                                                {integer}
-                                                {ChessSet}
-                                                eta
-                                                {Bool}
-                                                (\(a' : integer)
-                                                  (b' : ChessSet) ->
-                                                   Bool_match
-                                                     (`$p1Ord` {integer} v a a')
-                                                     {all dead. Bool}
-                                                     (/\dead ->
-                                                        `$p1Ord`
-                                                          {ChessSet}
-                                                          v
-                                                          b
-                                                          b')
-                                                     (/\dead -> False)
-                                                     {all dead. dead})))
-                                      (\(ds : Tuple2 integer ChessSet)
-                                        (ds : Tuple2 integer ChessSet) ->
-                                         Tuple2_match
-                                           {integer}
-                                           {ChessSet}
-                                           ds
-                                           {Ordering}
-                                           (\(a : integer) (b : ChessSet) ->
-                                              Tuple2_match
-                                                {integer}
-                                                {ChessSet}
-                                                ds
-                                                {Ordering}
-                                                (\(a' : integer) ->
-                                                   let
-                                                     ~defaultBody : Ordering
-                                                       = compare
+                                            eta
+                                            {Bool}
+                                            (\(a : integer) (b : ChessSet) ->
+                                               Tuple2_match
+                                                 {integer}
+                                                 {ChessSet}
+                                                 eta
+                                                 {Bool}
+                                                 (\(a' : integer)
+                                                   (b' : ChessSet) ->
+                                                    Bool_match
+                                                      (`$p1Ord`
+                                                         {integer}
+                                                         v
+                                                         a
+                                                         a')
+                                                      {all dead. Bool}
+                                                      (/\dead ->
+                                                         `$p1Ord`
+                                                           {ChessSet}
+                                                           v
+                                                           b
+                                                           b')
+                                                      (/\dead -> False)
+                                                      {all dead. dead})))
+                                       (\(ds : Tuple2 integer ChessSet)
+                                         (ds : Tuple2 integer ChessSet) ->
+                                          Tuple2_match
+                                            {integer}
+                                            {ChessSet}
+                                            ds
+                                            {Ordering}
+                                            (\(a : integer) (b : ChessSet) ->
+                                               Tuple2_match
+                                                 {integer}
+                                                 {ChessSet}
+                                                 ds
+                                                 {Ordering}
+                                                 (\(a' : integer) ->
+                                                    let
+                                                      ~defaultBody : Ordering
+                                                        = compare
+                                                            {integer}
+                                                            v
+                                                            a
+                                                            a'
+                                                    in
+                                                    \(b' : ChessSet) ->
+                                                      Ordering_match
+                                                        (compare
                                                            {integer}
                                                            v
                                                            a
-                                                           a'
-                                                   in
-                                                   \(b' : ChessSet) ->
-                                                     Ordering_match
-                                                       (compare
-                                                          {integer}
-                                                          v
-                                                          a
-                                                          a')
-                                                       {all dead. Ordering}
-                                                       (/\dead ->
-                                                          compare
-                                                            {ChessSet}
-                                                            v
-                                                            b
-                                                            b')
-                                                       (/\dead -> defaultBody)
-                                                       (/\dead -> defaultBody)
-                                                       {all dead. dead})))
-                                      (\(x : Tuple2 integer ChessSet)
-                                        (y : Tuple2 integer ChessSet) ->
-                                         Tuple2_match
-                                           {integer}
-                                           {ChessSet}
-                                           x
-                                           {Bool}
-                                           (\(ipv : integer) (ipv : ChessSet) ->
-                                              Tuple2_match
-                                                {integer}
-                                                {ChessSet}
-                                                y
-                                                {Bool}
-                                                (\(ipv : integer)
-                                                  (ipv : ChessSet) ->
-                                                   Ordering_match
-                                                     (compare
-                                                        {integer}
-                                                        v
-                                                        ipv
-                                                        ipv)
-                                                     {all dead. Bool}
-                                                     (/\dead ->
-                                                        Ordering_match
-                                                          (compare
+                                                           a')
+                                                        {all dead. Ordering}
+                                                        (/\dead ->
+                                                           compare
                                                              {ChessSet}
                                                              v
-                                                             ipv
-                                                             ipv)
-                                                          {all dead. Bool}
-                                                          (/\dead -> False)
-                                                          (/\dead -> False)
-                                                          (/\dead -> True)
-                                                          {all dead. dead})
-                                                     (/\dead -> False)
-                                                     (/\dead -> True)
-                                                     {all dead. dead})))
-                                      (\(x : Tuple2 integer ChessSet)
-                                        (y : Tuple2 integer ChessSet) ->
-                                         Tuple2_match
-                                           {integer}
-                                           {ChessSet}
-                                           x
-                                           {Bool}
-                                           (\(ipv : integer) (ipv : ChessSet) ->
-                                              Tuple2_match
-                                                {integer}
-                                                {ChessSet}
-                                                y
-                                                {Bool}
-                                                (\(ipv : integer)
-                                                  (ipv : ChessSet) ->
-                                                   Ordering_match
-                                                     (compare
-                                                        {integer}
-                                                        v
-                                                        ipv
-                                                        ipv)
-                                                     {all dead. Bool}
-                                                     (/\dead ->
-                                                        Ordering_match
-                                                          (compare
-                                                             {ChessSet}
-                                                             v
-                                                             ipv
-                                                             ipv)
-                                                          {all dead. Bool}
-                                                          (/\dead -> True)
-                                                          (/\dead -> False)
-                                                          (/\dead -> True)
-                                                          {all dead. dead})
-                                                     (/\dead -> False)
-                                                     (/\dead -> True)
-                                                     {all dead. dead})))
-                                      (\(x : Tuple2 integer ChessSet)
-                                        (y : Tuple2 integer ChessSet) ->
-                                         Tuple2_match
-                                           {integer}
-                                           {ChessSet}
-                                           x
-                                           {Bool}
-                                           (\(ipv : integer) (ipv : ChessSet) ->
-                                              Tuple2_match
-                                                {integer}
-                                                {ChessSet}
-                                                y
-                                                {Bool}
-                                                (\(ipv : integer)
-                                                  (ipv : ChessSet) ->
-                                                   Ordering_match
-                                                     (compare
-                                                        {integer}
-                                                        v
-                                                        ipv
-                                                        ipv)
-                                                     {all dead. Bool}
-                                                     (/\dead ->
-                                                        Ordering_match
-                                                          (compare
-                                                             {ChessSet}
-                                                             v
-                                                             ipv
-                                                             ipv)
-                                                          {all dead. Bool}
-                                                          (/\dead -> False)
-                                                          (/\dead -> True)
-                                                          (/\dead -> False)
-                                                          {all dead. dead})
-                                                     (/\dead -> True)
-                                                     (/\dead -> False)
-                                                     {all dead. dead})))
-                                      (\(x : Tuple2 integer ChessSet)
-                                        (y : Tuple2 integer ChessSet) ->
-                                         Tuple2_match
-                                           {integer}
-                                           {ChessSet}
-                                           x
-                                           {Bool}
-                                           (\(ipv : integer) (ipv : ChessSet) ->
-                                              Tuple2_match
-                                                {integer}
-                                                {ChessSet}
-                                                y
-                                                {Bool}
-                                                (\(ipv : integer)
-                                                  (ipv : ChessSet) ->
-                                                   Ordering_match
-                                                     (compare
-                                                        {integer}
-                                                        v
-                                                        ipv
-                                                        ipv)
-                                                     {all dead. Bool}
-                                                     (/\dead ->
-                                                        Ordering_match
-                                                          (compare
-                                                             {ChessSet}
-                                                             v
-                                                             ipv
-                                                             ipv)
-                                                          {all dead. Bool}
-                                                          (/\dead -> True)
-                                                          (/\dead -> True)
-                                                          (/\dead -> False)
-                                                          {all dead. dead})
-                                                     (/\dead -> True)
-                                                     (/\dead -> False)
-                                                     {all dead. dead})))
-                                      (\(x : Tuple2 integer ChessSet)
-                                        (y : Tuple2 integer ChessSet) ->
-                                         Tuple2_match
-                                           {integer}
-                                           {ChessSet}
-                                           x
-                                           {Tuple2 integer ChessSet}
-                                           (\(ipv : integer) (ipv : ChessSet) ->
-                                              Tuple2_match
-                                                {integer}
-                                                {ChessSet}
-                                                y
-                                                {Tuple2 integer ChessSet}
-                                                (\(ipv : integer)
-                                                  (ipv : ChessSet) ->
-                                                   Ordering_match
-                                                     (compare
-                                                        {integer}
-                                                        v
-                                                        ipv
-                                                        ipv)
-                                                     {all dead.
-                                                        Tuple2 integer ChessSet}
-                                                     (/\dead ->
-                                                        Ordering_match
-                                                          (compare
-                                                             {ChessSet}
-                                                             v
-                                                             ipv
-                                                             ipv)
-                                                          {all dead.
-                                                             Tuple2
-                                                               integer
-                                                               ChessSet}
-                                                          (/\dead -> y)
-                                                          (/\dead -> x)
-                                                          (/\dead -> y)
-                                                          {all dead. dead})
-                                                     (/\dead -> x)
-                                                     (/\dead -> y)
-                                                     {all dead. dead})))
-                                      (\(x : Tuple2 integer ChessSet)
-                                        (y : Tuple2 integer ChessSet) ->
-                                         Tuple2_match
-                                           {integer}
-                                           {ChessSet}
-                                           x
-                                           {Tuple2 integer ChessSet}
-                                           (\(ipv : integer) (ipv : ChessSet) ->
-                                              Tuple2_match
-                                                {integer}
-                                                {ChessSet}
-                                                y
-                                                {Tuple2 integer ChessSet}
-                                                (\(ipv : integer)
-                                                  (ipv : ChessSet) ->
-                                                   Ordering_match
-                                                     (compare
-                                                        {integer}
-                                                        v
-                                                        ipv
-                                                        ipv)
-                                                     {all dead.
-                                                        Tuple2 integer ChessSet}
-                                                     (/\dead ->
-                                                        Ordering_match
-                                                          (compare
-                                                             {ChessSet}
-                                                             v
-                                                             ipv
-                                                             ipv)
-                                                          {all dead.
-                                                             Tuple2
-                                                               integer
-                                                               ChessSet}
-                                                          (/\dead -> x)
-                                                          (/\dead -> y)
-                                                          (/\dead -> x)
-                                                          {all dead. dead})
-                                                     (/\dead -> y)
-                                                     (/\dead -> x)
-                                                     {all dead. dead}))))
+                                                             b
+                                                             b')
+                                                        (/\dead -> defaultBody)
+                                                        (/\dead -> defaultBody)
+                                                        {all dead. dead})))
+                                       (\(x : Tuple2 integer ChessSet)
+                                         (y : Tuple2 integer ChessSet) ->
+                                          Tuple2_match
+                                            {integer}
+                                            {ChessSet}
+                                            x
+                                            {Bool}
+                                            (\(ipv : integer)
+                                              (ipv : ChessSet) ->
+                                               Tuple2_match
+                                                 {integer}
+                                                 {ChessSet}
+                                                 y
+                                                 {Bool}
+                                                 (\(ipv : integer)
+                                                   (ipv : ChessSet) ->
+                                                    Ordering_match
+                                                      (compare
+                                                         {integer}
+                                                         v
+                                                         ipv
+                                                         ipv)
+                                                      {all dead. Bool}
+                                                      (/\dead ->
+                                                         Ordering_match
+                                                           (compare
+                                                              {ChessSet}
+                                                              v
+                                                              ipv
+                                                              ipv)
+                                                           {all dead. Bool}
+                                                           (/\dead -> False)
+                                                           (/\dead -> False)
+                                                           (/\dead -> True)
+                                                           {all dead. dead})
+                                                      (/\dead -> False)
+                                                      (/\dead -> True)
+                                                      {all dead. dead})))
+                                       (\(x : Tuple2 integer ChessSet)
+                                         (y : Tuple2 integer ChessSet) ->
+                                          Tuple2_match
+                                            {integer}
+                                            {ChessSet}
+                                            x
+                                            {Bool}
+                                            (\(ipv : integer)
+                                              (ipv : ChessSet) ->
+                                               Tuple2_match
+                                                 {integer}
+                                                 {ChessSet}
+                                                 y
+                                                 {Bool}
+                                                 (\(ipv : integer)
+                                                   (ipv : ChessSet) ->
+                                                    Ordering_match
+                                                      (compare
+                                                         {integer}
+                                                         v
+                                                         ipv
+                                                         ipv)
+                                                      {all dead. Bool}
+                                                      (/\dead ->
+                                                         Ordering_match
+                                                           (compare
+                                                              {ChessSet}
+                                                              v
+                                                              ipv
+                                                              ipv)
+                                                           {all dead. Bool}
+                                                           (/\dead -> True)
+                                                           (/\dead -> False)
+                                                           (/\dead -> True)
+                                                           {all dead. dead})
+                                                      (/\dead -> False)
+                                                      (/\dead -> True)
+                                                      {all dead. dead})))
+                                       (\(x : Tuple2 integer ChessSet)
+                                         (y : Tuple2 integer ChessSet) ->
+                                          Tuple2_match
+                                            {integer}
+                                            {ChessSet}
+                                            x
+                                            {Bool}
+                                            (\(ipv : integer)
+                                              (ipv : ChessSet) ->
+                                               Tuple2_match
+                                                 {integer}
+                                                 {ChessSet}
+                                                 y
+                                                 {Bool}
+                                                 (\(ipv : integer)
+                                                   (ipv : ChessSet) ->
+                                                    Ordering_match
+                                                      (compare
+                                                         {integer}
+                                                         v
+                                                         ipv
+                                                         ipv)
+                                                      {all dead. Bool}
+                                                      (/\dead ->
+                                                         Ordering_match
+                                                           (compare
+                                                              {ChessSet}
+                                                              v
+                                                              ipv
+                                                              ipv)
+                                                           {all dead. Bool}
+                                                           (/\dead -> False)
+                                                           (/\dead -> True)
+                                                           (/\dead -> False)
+                                                           {all dead. dead})
+                                                      (/\dead -> True)
+                                                      (/\dead -> False)
+                                                      {all dead. dead})))
+                                       (\(x : Tuple2 integer ChessSet)
+                                         (y : Tuple2 integer ChessSet) ->
+                                          Tuple2_match
+                                            {integer}
+                                            {ChessSet}
+                                            x
+                                            {Bool}
+                                            (\(ipv : integer)
+                                              (ipv : ChessSet) ->
+                                               Tuple2_match
+                                                 {integer}
+                                                 {ChessSet}
+                                                 y
+                                                 {Bool}
+                                                 (\(ipv : integer)
+                                                   (ipv : ChessSet) ->
+                                                    Ordering_match
+                                                      (compare
+                                                         {integer}
+                                                         v
+                                                         ipv
+                                                         ipv)
+                                                      {all dead. Bool}
+                                                      (/\dead ->
+                                                         Ordering_match
+                                                           (compare
+                                                              {ChessSet}
+                                                              v
+                                                              ipv
+                                                              ipv)
+                                                           {all dead. Bool}
+                                                           (/\dead -> True)
+                                                           (/\dead -> True)
+                                                           (/\dead -> False)
+                                                           {all dead. dead})
+                                                      (/\dead -> True)
+                                                      (/\dead -> False)
+                                                      {all dead. dead})))
+                                       (\(x : Tuple2 integer ChessSet)
+                                         (y : Tuple2 integer ChessSet) ->
+                                          Tuple2_match
+                                            {integer}
+                                            {ChessSet}
+                                            x
+                                            {Tuple2 integer ChessSet}
+                                            (\(ipv : integer)
+                                              (ipv : ChessSet) ->
+                                               Tuple2_match
+                                                 {integer}
+                                                 {ChessSet}
+                                                 y
+                                                 {Tuple2 integer ChessSet}
+                                                 (\(ipv : integer)
+                                                   (ipv : ChessSet) ->
+                                                    Ordering_match
+                                                      (compare
+                                                         {integer}
+                                                         v
+                                                         ipv
+                                                         ipv)
+                                                      {all dead.
+                                                         Tuple2
+                                                           integer
+                                                           ChessSet}
+                                                      (/\dead ->
+                                                         Ordering_match
+                                                           (compare
+                                                              {ChessSet}
+                                                              v
+                                                              ipv
+                                                              ipv)
+                                                           {all dead.
+                                                              Tuple2
+                                                                integer
+                                                                ChessSet}
+                                                           (/\dead -> y)
+                                                           (/\dead -> x)
+                                                           (/\dead -> y)
+                                                           {all dead. dead})
+                                                      (/\dead -> x)
+                                                      (/\dead -> y)
+                                                      {all dead. dead})))
+                                       (\(x : Tuple2 integer ChessSet)
+                                         (y : Tuple2 integer ChessSet) ->
+                                          Tuple2_match
+                                            {integer}
+                                            {ChessSet}
+                                            x
+                                            {Tuple2 integer ChessSet}
+                                            (\(ipv : integer)
+                                              (ipv : ChessSet) ->
+                                               Tuple2_match
+                                                 {integer}
+                                                 {ChessSet}
+                                                 y
+                                                 {Tuple2 integer ChessSet}
+                                                 (\(ipv : integer)
+                                                   (ipv : ChessSet) ->
+                                                    Ordering_match
+                                                      (compare
+                                                         {integer}
+                                                         v
+                                                         ipv
+                                                         ipv)
+                                                      {all dead.
+                                                         Tuple2
+                                                           integer
+                                                           ChessSet}
+                                                      (/\dead ->
+                                                         Ordering_match
+                                                           (compare
+                                                              {ChessSet}
+                                                              v
+                                                              ipv
+                                                              ipv)
+                                                           {all dead.
+                                                              Tuple2
+                                                                integer
+                                                                ChessSet}
+                                                           (/\dead -> x)
+                                                           (/\dead -> y)
+                                                           (/\dead -> x)
+                                                           {all dead. dead})
+                                                      (/\dead -> y)
+                                                      (/\dead -> x)
+                                                      {all dead. dead}))))
                                     (descAndNo y)))
                             (/\dead ->
                                Bool_match

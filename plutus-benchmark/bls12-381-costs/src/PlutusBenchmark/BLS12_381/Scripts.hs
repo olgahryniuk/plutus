@@ -78,17 +78,6 @@ blsSigBls12381G2XmdSha256SswuRoNul = toBuiltin $ C8.pack "BLS_SIG_BLS12381G2_XMD
 byteString16Null :: BuiltinByteString
 byteString16Null = bytesFromHex "00000000000000000000000000000000"
 
--- workaround the lack of ByteString to Integer interpretation
--- replace with builtin when available, see https://github.com/input-output-hk/plutus/pull/4733
-byteStringToInteger  :: BuiltinByteString -> Integer
-byteStringToInteger b =
-  go 0
-    where len = Tx.lengthOfByteString b
-          go i =
-              if i >= len
-              then 0
-              else (Tx.indexByteString b i) + 256 * (go (i + 1))
-
 ---------------- Examples ----------------
 
 -- Hash some bytestrings onto G1 and add them all together
