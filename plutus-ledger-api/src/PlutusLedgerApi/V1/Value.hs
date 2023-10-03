@@ -1,4 +1,5 @@
 -- editorconfig-checker-disable-file
+{-# LANGUAGE BangPatterns       #-}
 {-# LANGUAGE DeriveAnyClass     #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DerivingVia        #-}
@@ -191,9 +192,101 @@ newtype Value = Value { getValue :: Map.Map CurrencySymbol (Map.Map TokenName In
 instance Haskell.Eq Value where
     (==) = eq
 
+{-# INLINABLE valueEqualsValue4 #-}
+valueEqualsValue4 :: Value -> Value -> Bool
+valueEqualsValue4 (Value !mp1) (Value !mp2) =
+    let
+        !listCS1 = Map.toList mp1
+        !listCS2 = Map.toList mp2
+    in
+        listCS1 `listCSEqualsListCS` listCS2
+
+---------------------------------------------------
+
+{-# INLINABLE listTNEqualsListTN #-}
+listTNEqualsListTN :: [(TokenName, Integer)] -> [(TokenName, Integer)] -> Bool
+
+listTNEqualsListTN [] [] = True
+
+listTNEqualsListTN [] ((_, !am2):(!xs2)) =
+    am2 == 0 && listTNEqualsListTN [] xs2
+
+listTNEqualsListTN ((_, !am1):(!xs1)) [] =
+    am1 == 0 && listTNEqualsListTN xs1 []
+
+listTNEqualsListTN ((!tn1, !am1):(!xs1)) ((!tn2, !am2):(!xs2))
+    | am1 == 0 =
+        listTNEqualsListTN xs1 ((tn2, am2):xs2)
+
+    | am2 == 0 =
+        listTNEqualsListTN ((tn1, am1):xs1) xs2
+
+    | tn1 == tn2 && am1 == am2 =
+        listTNEqualsListTN xs1 xs2
+
+    | otherwise =
+        let
+            listTNEqualsListTN' :: (TokenName, Integer) -> [(TokenName, Integer)] -> [(TokenName, Integer)] -> [(TokenName, Integer)] -> Bool
+            listTNEqualsListTN' (!tn1', !am1') !xs1' !xs2' ((!tn2', !am2'):(!xs3'))
+                | am2' == 0                     = listTNEqualsListTN' (tn1', am1') xs1' xs2' xs3'
+                | tn1' == tn2' && am1' == am2'  = listTNEqualsListTN xs1' (xs2'++xs3')
+                | otherwise                     = listTNEqualsListTN' (tn1', am1') xs1' ((tn2', am2'):xs2') xs3'
+            listTNEqualsListTN' _ _ _ _ = False
+        in
+            listTNEqualsListTN' (tn1, am1) xs1 [(tn2, am2)] xs2
+
+---------------------------------------------------
+
+{-# INLINABLE listCSEqualsListCS #-}
+listCSEqualsListCS :: [(CurrencySymbol, Map.Map TokenName Integer)] -> [(CurrencySymbol, Map.Map TokenName Integer)] -> Bool
+listCSEqualsListCS [] [] = True
+
+listCSEqualsListCS ((_, !mp1):(!xs1)) [] =
+        let
+            !listTN1 = Map.toList mp1
+        in
+            listTNEqualsListTN listTN1 [] && listCSEqualsListCS xs1 []
+
+listCSEqualsListCS [] ((_, !mp2):(!xs2)) =
+        let
+            !listTN2 = Map.toList mp2
+        in
+            listTNEqualsListTN [] listTN2 && listCSEqualsListCS [] xs2
+
+listCSEqualsListCS ((!cs1, !mp1):(!xs1)) ((!cs2, !mp2):(!xs2))
+
+    | cs1 == cs2 =
+        let
+            !listTN1 = Map.toList mp1
+            !listTN2 = Map.toList mp2
+        in
+            listTNEqualsListTN listTN1 listTN2 && listCSEqualsListCS xs1 xs2
+
+    | otherwise =
+        let
+            listCSEqualsListCS' :: (CurrencySymbol, Map.Map TokenName Integer) -> [(CurrencySymbol, Map.Map TokenName Integer)] -> [(CurrencySymbol, Map.Map TokenName Integer)] -> [(CurrencySymbol, Map.Map TokenName Integer)] -> Bool
+
+            listCSEqualsListCS' (!_, !mp1') !xs1' !xs2' [] =
+                let
+                    !listTN1 = Map.toList mp1'
+                in
+                    listTNEqualsListTN listTN1 [] && listCSEqualsListCS xs1' xs2'
+
+            listCSEqualsListCS' (!cs1', !mp1') !xs1' !xs2' ((!cs2', !mp2'):xs3') =
+                if cs1' == cs2' then
+                    let
+                        !listTN1 = Map.toList mp1'
+                        !listTN2 = Map.toList mp2'
+                    in
+                        listTNEqualsListTN listTN1 listTN2 && listCSEqualsListCS xs1' (xs2'++xs3')
+                else
+                    listCSEqualsListCS' (cs1', mp1') xs1' ((cs2', mp2'):xs2') xs3'
+        in
+            listCSEqualsListCS' (cs1, mp1) xs1 [(cs2, mp2)] xs2
+
 instance Eq Value where
     {-# INLINABLE (==) #-}
-    (==) = eq
+    (==) = valueEqualsValue4
 
 instance Haskell.Semigroup Value where
     (<>) = unionWith (+)
