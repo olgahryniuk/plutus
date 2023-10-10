@@ -371,9 +371,10 @@ sizeIsAcceptable = \case
   -- Arguably we could allow these two, but they're uncommon anyway
   IWrap{}    -> False
   Unwrap{}   -> False
-  -- Constants can be big! We could check the size here and inline if they're
-  -- small, but probably not worth it
-  Constant{} -> False
+  -- Constants can be big! We could check the size here and inline only if they're
+  -- small, but probably not worth it. Inlining constants can trigger constant
+  -- folding, so we just do it without checking the size.
+  Constant{} -> True
   Apply{}    -> False
   TyInst{}   -> False
   Let{}      -> False

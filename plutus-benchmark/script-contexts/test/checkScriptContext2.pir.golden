@@ -1,13 +1,9 @@
 (let
     !`$fUnsafeFromDataBuiltinData_$cunsafeFromBuiltinData` : data -> data
       = \(d : data) -> d
-    data Unit | Unit_match where
-      Unit : Unit
-    !reconstructCaseError : string = "PT1"
     data Bool | Bool_match where
       True : Bool
       False : Bool
-    !unitval : unit = ()
     !`$fUnsafeFromDataBool_$cunsafeFromBuiltinData` : data -> Bool
       = \(d : data) ->
           let
@@ -22,13 +18,9 @@
                  {unit -> Bool}
                  (equalsInteger 0 index)
                  (\(ds : unit) -> False)
-                 (\(ds : unit) ->
-                    let
-                      !x : Unit = trace {Unit} reconstructCaseError Unit
-                    in
-                    error {Bool})
-                 unitval)
-            unitval
+                 (\(ds : unit) -> error {Bool})
+                 ())
+            ()
     data (Extended :: * -> *) a | Extended_match where
       Finite : a -> Extended a
       NegInf : Extended a
@@ -61,14 +53,10 @@
                         {unit -> Extended a}
                         (equalsInteger 0 index)
                         (\(ds : unit) -> NegInf {a})
-                        (\(ds : unit) ->
-                           let
-                             !x : Unit = trace {Unit} reconstructCaseError Unit
-                           in
-                           error {Extended a})
-                        unitval)
-                   unitval)
-              unitval
+                        (\(ds : unit) -> error {Extended a})
+                        ())
+                   ())
+              ()
     !`$fUnsafeFromDataTxId_$cunsafeFromBuiltinData` : data -> bytestring
       = \(d : data) ->
           let
@@ -79,12 +67,8 @@
             (equalsInteger 0 (fstPair {integer} {list data} tup))
             (\(ds : unit) ->
                unBData (headList {data} (sndPair {integer} {list data} tup)))
-            (\(ds : unit) ->
-               let
-                 !x : Unit = trace {Unit} reconstructCaseError Unit
-               in
-               error {bytestring})
-            unitval
+            (\(ds : unit) -> error {bytestring})
+            ()
     data GovernanceActionId | GovernanceActionId_match where
       GovernanceActionId : bytestring -> integer -> GovernanceActionId
     !`$fUnsafeFromDataGovernanceAction_$cunsafeFromBuiltinData` :
@@ -105,12 +89,8 @@
                GovernanceActionId
                  (`$fUnsafeFromDataTxId_$cunsafeFromBuiltinData` arg)
                  (unIData arg))
-            (\(ds : unit) ->
-               let
-                 !x : Unit = trace {Unit} reconstructCaseError Unit
-               in
-               error {GovernanceActionId})
-            unitval
+            (\(ds : unit) -> error {GovernanceActionId})
+            ()
     data TxOutRef | TxOutRef_match where
       TxOutRef : bytestring -> integer -> TxOutRef
     !`$fUnsafeFromDataTxOutRef_$cunsafeFromBuiltinData` : data -> TxOutRef
@@ -130,12 +110,8 @@
                TxOutRef
                  (`$fUnsafeFromDataTxId_$cunsafeFromBuiltinData` arg)
                  (unIData arg))
-            (\(ds : unit) ->
-               let
-                 !x : Unit = trace {Unit} reconstructCaseError Unit
-               in
-               error {TxOutRef})
-            unitval
+            (\(ds : unit) -> error {TxOutRef})
+            ()
     data Credential | Credential_match where
       PubKeyCredential : bytestring -> Credential
       ScriptCredential : bytestring -> Credential
@@ -160,13 +136,9 @@
                     PubKeyCredential
                       (unBData
                          (headList {data} (sndPair {integer} {list data} tup))))
-                 (\(ds : unit) ->
-                    let
-                      !x : Unit = trace {Unit} reconstructCaseError Unit
-                    in
-                    error {Credential})
-                 unitval)
-            unitval
+                 (\(ds : unit) -> error {Credential})
+                 ())
+            ()
     data Voter | Voter_match where
       CommitteeVoter : Credential -> Voter
       DRepVoter : Credential -> Voter
@@ -202,14 +174,10 @@
                               (headList
                                  {data}
                                  (sndPair {integer} {list data} tup))))
-                      (\(ds : unit) ->
-                         let
-                           !x : Unit = trace {Unit} reconstructCaseError Unit
-                         in
-                         error {Voter})
-                      unitval)
-                 unitval)
-            unitval
+                      (\(ds : unit) -> error {Voter})
+                      ())
+                 ())
+            ()
     data DRep | DRep_match where
       DRep : Credential -> DRep
       DRepAlwaysAbstain : DRep
@@ -239,14 +207,10 @@
                               (headList
                                  {data}
                                  (sndPair {integer} {list data} tup))))
-                      (\(ds : unit) ->
-                         let
-                           !x : Unit = trace {Unit} reconstructCaseError Unit
-                         in
-                         error {DRep})
-                      unitval)
-                 unitval)
-            unitval
+                      (\(ds : unit) -> error {DRep})
+                      ())
+                 ())
+            ()
     data Delegatee | Delegatee_match where
       DelegStake : bytestring -> Delegatee
       DelegStakeVote : bytestring -> DRep -> Delegatee
@@ -287,14 +251,10 @@
                               (headList
                                  {data}
                                  (sndPair {integer} {list data} tup))))
-                      (\(ds : unit) ->
-                         let
-                           !x : Unit = trace {Unit} reconstructCaseError Unit
-                         in
-                         error {Delegatee})
-                      unitval)
-                 unitval)
-            unitval
+                      (\(ds : unit) -> error {Delegatee})
+                      ())
+                 ())
+            ()
     data (Maybe :: * -> *) a | Maybe_match where
       Just : a -> Maybe a
       Nothing : Maybe a
@@ -319,13 +279,11 @@
                    {unit -> Maybe a}
                    (equalsInteger 1 index)
                    (\(ds : unit) -> Nothing {a})
-                   (\(ds : unit) ->
-                      let
-                        !x : Unit = trace {Unit} reconstructCaseError Unit
-                      in
-                      error {Maybe a})
-                   unitval)
-              unitval
+                   (\(ds : unit) -> error {Maybe a})
+                   ())
+              ()
+    data Unit | Unit_match where
+      Unit : Unit
     data (Tuple2 :: * -> * -> *) a b | Tuple2_match where
       Tuple2 : a -> b -> Tuple2 a b
   in
@@ -622,24 +580,16 @@
                                                             `$fUnsafeFromDataValue`
                                                             arg))
                                                     (\(ds : unit) ->
-                                                       let
-                                                         !x :
-                                                            Unit
-                                                           = trace
-                                                               {Unit}
-                                                               reconstructCaseError
-                                                               Unit
-                                                       in
                                                        error {TxCert})
-                                                    unitval)
-                                               unitval)
-                                          unitval)
-                                     unitval)
-                                unitval)
-                           unitval)
-                      unitval)
-                 unitval)
-            unitval
+                                                    ())
+                                               ())
+                                          ())
+                                     ())
+                                ())
+                           ())
+                      ())
+                 ())
+            ()
     data ScriptPurpose | ScriptPurpose_match where
       Certifying : TxCert -> ScriptPurpose
       Minting : bytestring -> ScriptPurpose
@@ -722,21 +672,13 @@
                                                    {integer}
                                                    {list data}
                                                    tup))))
-                                     (\(ds : unit) ->
-                                        let
-                                          !x : Unit
-                                            = trace
-                                                {Unit}
-                                                reconstructCaseError
-                                                Unit
-                                        in
-                                        error {ScriptPurpose})
-                                     unitval)
-                                unitval)
-                           unitval)
-                      unitval)
-                 unitval)
-            unitval
+                                     (\(ds : unit) -> error {ScriptPurpose})
+                                     ())
+                                ())
+                           ())
+                      ())
+                 ())
+            ()
     data StakingCredential | StakingCredential_match where
       StakingHash : Credential -> StakingCredential
       StakingPtr : integer -> integer -> integer -> StakingCredential
@@ -828,24 +770,12 @@
                                                    {integer}
                                                    {list data}
                                                    tup))))
-                                     (\(ds : unit) ->
-                                        let
-                                          !x : Unit
-                                            = trace
-                                                {Unit}
-                                                reconstructCaseError
-                                                Unit
-                                        in
-                                        error {StakingCredential})
-                                     unitval)
-                                unitval)
+                                     (\(ds : unit) -> error {StakingCredential})
+                                     ())
+                                ())
                            arg))
-                   (\(ds : unit) ->
-                      let
-                        !x : Unit = trace {Unit} reconstructCaseError Unit
-                      in
-                      error {Address})
-                   unitval)
+                   (\(ds : unit) -> error {Address})
+                   ())
                  (`$fUnsafeFromDataMap_$cunsafeFromBuiltinData`
                     {bytestring}
                     {(\k v -> List (Tuple2 k v)) bytestring integer}
@@ -877,25 +807,16 @@
                              {unit -> OutputDatum}
                              (equalsInteger 0 index)
                              (\(ds : unit) -> NoOutputDatum)
-                             (\(ds : unit) ->
-                                let
-                                  !x : Unit
-                                    = trace {Unit} reconstructCaseError Unit
-                                in
-                                error {OutputDatum})
-                             unitval)
-                        unitval)
-                   unitval)
+                             (\(ds : unit) -> error {OutputDatum})
+                             ())
+                        ())
+                   ())
                  (`$fUnsafeFromDataMaybe_$cunsafeFromBuiltinData`
                     {bytestring}
                     unBData
                     arg))
-            (\(ds : unit) ->
-               let
-                 !x : Unit = trace {Unit} reconstructCaseError Unit
-               in
-               error {TxOut})
-            unitval
+            (\(ds : unit) -> error {TxOut})
+            ()
     data TxInInfo | TxInInfo_match where
       TxInInfo : TxOutRef -> TxOut -> TxInInfo
     !`$fUnsafeFromDataScriptContext_$cunsafeFromBuiltinData` : data -> TxInInfo
@@ -915,12 +836,8 @@
                TxInInfo
                  (`$fUnsafeFromDataTxOutRef_$cunsafeFromBuiltinData` arg)
                  (`$fUnsafeFromDataTxOut_$cunsafeFromBuiltinData` arg))
-            (\(ds : unit) ->
-               let
-                 !x : Unit = trace {Unit} reconstructCaseError Unit
-               in
-               error {TxInInfo})
-            unitval
+            (\(ds : unit) -> error {TxInInfo})
+            ()
     !`$fUnsafeFromDataNil_$cunsafeFromBuiltinData` :
        all a. (\a -> data -> a) a -> data -> List a
       = /\a ->
@@ -1019,17 +936,12 @@
         TxInfo
     data ScriptContext | ScriptContext_match where
       ScriptContext : TxInfo -> ScriptPurpose -> ScriptContext
-    !`$fAdditiveMonoidInteger_$czero` : integer = 0
   in
   letrec
     !euclid : integer -> integer -> integer
       = \(x : integer) (y : integer) ->
           Bool_match
-            (ifThenElse
-               {Bool}
-               (equalsInteger y `$fAdditiveMonoidInteger_$czero`)
-               True
-               False)
+            (ifThenElse {Bool} (equalsInteger 0 y) True False)
             {all dead. integer}
             (/\dead -> x)
             (/\dead -> euclid y (modInteger x y))
@@ -1039,25 +951,15 @@
     !unsafeRatio : integer -> integer -> Rational
       = \(n : integer) (d : integer) ->
           Bool_match
-            (ifThenElse
-               {Bool}
-               (equalsInteger d `$fAdditiveMonoidInteger_$czero`)
-               True
-               False)
+            (ifThenElse {Bool} (equalsInteger 0 d) True False)
             {all dead. Rational}
             (/\dead -> error {Rational})
             (/\dead ->
                Bool_match
-                 (ifThenElse
-                    {Bool}
-                    (lessThanInteger d `$fAdditiveMonoidInteger_$czero`)
-                    True
-                    False)
+                 (ifThenElse {Bool} (lessThanInteger d 0) True False)
                  {all dead. Rational}
                  (/\dead ->
-                    unsafeRatio
-                      (subtractInteger `$fAdditiveMonoidInteger_$czero` n)
-                      (subtractInteger `$fAdditiveMonoidInteger_$czero` d))
+                    unsafeRatio (subtractInteger 0 n) (subtractInteger 0 d))
                  (/\dead ->
                     let
                       !gcd' : integer = euclid n d
@@ -1197,13 +1099,8 @@
                                        arg)
                                     (`$fUnsafeFromDataBool_$cunsafeFromBuiltinData`
                                        arg))
-                               (\(ds : unit) ->
-                                  let
-                                    !x : Unit
-                                      = trace {Unit} reconstructCaseError Unit
-                                  in
-                                  error {LowerBound integer})
-                               unitval)
+                               (\(ds : unit) -> error {LowerBound integer})
+                               ())
                              (let
                                !tup : pair integer (list data)
                                  = unConstrData arg
@@ -1229,19 +1126,10 @@
                                        arg)
                                     (`$fUnsafeFromDataBool_$cunsafeFromBuiltinData`
                                        arg))
-                               (\(ds : unit) ->
-                                  let
-                                    !x : Unit
-                                      = trace {Unit} reconstructCaseError Unit
-                                  in
-                                  error {UpperBound integer})
-                               unitval))
-                        (\(ds : unit) ->
-                           let
-                             !x : Unit = trace {Unit} reconstructCaseError Unit
-                           in
-                           error {Interval integer})
-                        unitval)
+                               (\(ds : unit) -> error {UpperBound integer})
+                               ()))
+                        (\(ds : unit) -> error {Interval integer})
+                        ())
                       (`$fUnsafeFromDataNil_$cunsafeFromBuiltinData`
                          {bytestring}
                          unBData
@@ -1289,18 +1177,10 @@
                                            {unit -> Vote}
                                            (equalsInteger 0 index)
                                            (\(ds : unit) -> VoteNo)
-                                           (\(ds : unit) ->
-                                              let
-                                                !x : Unit
-                                                  = trace
-                                                      {Unit}
-                                                      reconstructCaseError
-                                                      Unit
-                                              in
-                                              error {Vote})
-                                           unitval)
-                                      unitval)
-                                 unitval))
+                                           (\(ds : unit) -> error {Vote})
+                                           ())
+                                      ())
+                                 ()))
                          arg)
                       (`$fUnsafeFromDataNil_$cunsafeFromBuiltinData`
                          {ProposalProcedure}
@@ -1393,15 +1273,8 @@
                                                       unBData
                                                       arg)
                                                  (\(ds : unit) ->
-                                                    let
-                                                      !x : Unit
-                                                        = trace
-                                                            {Unit}
-                                                            reconstructCaseError
-                                                            Unit
-                                                    in
                                                     error {Maybe bytestring})
-                                                 unitval))
+                                                 ()))
                                           (\(ds : unit) ->
                                              ifThenElse
                                                {unit -> GovernanceAction}
@@ -1525,19 +1398,11 @@
                                                                      (unIData
                                                                         arg))
                                                                 (\(ds : unit) ->
-                                                                   let
-                                                                     !x :
-                                                                        Unit
-                                                                       = trace
-                                                                           {Unit}
-                                                                           reconstructCaseError
-                                                                           Unit
-                                                                   in
                                                                    error
                                                                      {Tuple2
                                                                         integer
                                                                         integer})
-                                                                unitval)
+                                                                ())
                                                               {Rational}
                                                               (\(a : integer)
                                                                 (b : integer) ->
@@ -1545,16 +1410,8 @@
                                                                    a
                                                                    b)))
                                                       (\(ds : unit) ->
-                                                         let
-                                                           !x :
-                                                              Unit
-                                                             = trace
-                                                                 {Unit}
-                                                                 reconstructCaseError
-                                                                 Unit
-                                                         in
                                                          error {Committee})
-                                                      unitval))
+                                                      ()))
                                                (\(ds : unit) ->
                                                   ifThenElse
                                                     {unit -> GovernanceAction}
@@ -1693,17 +1550,9 @@
                                                                              arg))
                                                                      (\(ds :
                                                                           unit) ->
-                                                                        let
-                                                                          !x :
-                                                                             Unit
-                                                                            = trace
-                                                                                {Unit}
-                                                                                reconstructCaseError
-                                                                                Unit
-                                                                        in
                                                                         error
                                                                           {ProtocolVersion})
-                                                                     unitval))
+                                                                     ()))
                                                               (\(ds : unit) ->
                                                                  ifThenElse
                                                                    {unit ->
@@ -1743,30 +1592,17 @@
                                                                         arg)
                                                                    (\(ds :
                                                                         unit) ->
-                                                                      let
-                                                                        !x :
-                                                                           Unit
-                                                                          = trace
-                                                                              {Unit}
-                                                                              reconstructCaseError
-                                                                              Unit
-                                                                      in
                                                                       error
                                                                         {GovernanceAction})
-                                                                   unitval)
-                                                              unitval)
-                                                         unitval)
-                                                    unitval)
-                                               unitval)
-                                          unitval)
-                                     unitval))
-                              (\(ds : unit) ->
-                                 let
-                                   !x : Unit
-                                     = trace {Unit} reconstructCaseError Unit
-                                 in
-                                 error {ProposalProcedure})
-                              unitval)
+                                                                   ())
+                                                              ())
+                                                         ())
+                                                    ())
+                                               ())
+                                          ())
+                                     ()))
+                              (\(ds : unit) -> error {ProposalProcedure})
+                              ())
                          arg)
                       (`$fUnsafeFromDataMaybe_$cunsafeFromBuiltinData`
                          {(\k v -> List (Tuple2 k v))
@@ -1780,19 +1616,11 @@
                             ((\k v -> List (Tuple2 k v)) bytestring integer)}
                          `$fUnsafeFromDataValue`
                          arg))
-                 (\(ds : unit) ->
-                    let
-                      !x : Unit = trace {Unit} reconstructCaseError Unit
-                    in
-                    error {TxInfo})
-                 unitval)
+                 (\(ds : unit) -> error {TxInfo})
+                 ())
                (`$fUnsafeFromDataScriptContext_$cunsafeFromBuiltinData` arg))
-          (\(ds : unit) ->
-             let
-               !x : Unit = trace {Unit} reconstructCaseError Unit
-             in
-             error {ScriptContext})
-          unitval
+          (\(ds : unit) -> error {ScriptContext})
+          ()
     in
     Unit)
   (Constr 0
