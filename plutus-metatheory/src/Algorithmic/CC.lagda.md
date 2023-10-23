@@ -70,7 +70,6 @@ compEC (case cs E) E' = case cs (compEC E E')
 
 extEC : ∀{A B C}(E : EC A B)(F : Frame B C) → EC A C
 extEC [] (-· M') = [] l· M'
-extEC [] (-·v V) = [] l· deval V
 extEC [] (VM ·-) = VM ·r []
 extEC [] (-·⋆ A) = [] ·⋆ A / refl
 extEC [] wrap- = wrap []
@@ -98,14 +97,13 @@ data State (T : ∅ ⊢Nf⋆ *) : Set where
 
 extValueFrames : ∀{T H Bs Xs} → EC T H → {xs : IBwd (∅ ⊢_) Bs} → VList xs → Xs ≡ bwdMkCaseType Bs H → EC T Xs
 extValueFrames E [] refl = E
-extValueFrames E (vs :< v) refl = extValueFrames (extEC E (-·v v)) vs refl
+extValueFrames E (vs :< v) refl = extValueFrames (extEC E (-· deval v)) vs refl
 
 stepV : ∀{A B }{M : ∅ ⊢ A}(V : Value M)
        → (B ≡ A) ⊎ ∃ (λ C → EC B C × Frame C A)
        → State B
 stepV V (inj₁ refl) = □ V
 stepV V (inj₂ (_ ,, E ,, (-· N))) = extEC E (V ·-) ▻ N 
-stepV V (inj₂ (_ ,, E ,, -·v V')) = stepV V' (inj₂ (_ ,, E ,, (V ·-)))
 stepV V (inj₂ (_ ,, E ,, (V-ƛ M ·-))) = E ▻ (M [ deval V ])
 stepV V (inj₂ (_ ,, E ,, V-I⇒ b {am = 0} q ·-)) = 
           E ▻ BUILTIN' b (step q V)

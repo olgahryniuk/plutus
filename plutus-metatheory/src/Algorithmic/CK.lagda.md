@@ -68,7 +68,7 @@ discharge {t = t} _ = t
 
 pushValueFrames : ∀{T H Bs Xs} → Stack T H → {xs : IBwd (∅ ⊢_) Bs} → VList xs → Xs ≡ bwdMkCaseType Bs H → Stack T Xs
 pushValueFrames s [] refl = s
-pushValueFrames s (vs :< v) refl = pushValueFrames (s , -·v v) vs refl
+pushValueFrames s (vs :< v) refl = pushValueFrames (s , -· deval v) vs refl
 
 step : ∀{A} → State A → State A
 step (s ▻ ƛ L)                                = s ◅ V-ƛ L
@@ -85,7 +85,6 @@ step (s ▻ case t ts)                          = (s , case- ts) ▻ t
 step (s ▻ error A)                            = ◆ A
 step (ε ◅ V)                                  = □ V
 step ((s , (-· M)) ◅ V)                       = ((s , V ·-) ▻ M)
-step ((s , -·v v) ◅ vf)                       = (s , vf ·-) ◅ v
 step ((s , (V-ƛ t ·-)) ◅ V)                   = s ▻ (t [ discharge V ])
 step ((s , (-·⋆ A)) ◅ V-Λ t)                  = s ▻ (t [ A ]⋆)
 step ((s , wrap-) ◅ V)                        = s ◅ (V-wrap V)
