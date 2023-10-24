@@ -55,7 +55,11 @@ cong₃ f refl refl refl = refl
 ≡-subst-removable : ∀ {a p} {A : Set a}
                     (P : A → Set p) {x y} (p q : x ≡ y) z →
                     subst P p z ≡ subst P q z
-≡-subst-removable P refl refl z = refl 
+≡-subst-removable P refl refl z = refl
+
+ir : ∀{a}{A : Set a}{x y : A}(p q : x ≡ y) → p ≡ q
+ir refl refl = refl 
+
  \end{code}
 
 The type `n ∔ n' ≡ m` 
