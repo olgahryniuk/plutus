@@ -131,10 +131,8 @@ stepT (E ▻ Λ M) = E ◅ V-Λ M
 stepT (E ▻ (M ·⋆ A / refl)) = extEC E (-·⋆ A) ▻ M
 stepT (E ▻ wrap A B M) = extEC E wrap- ▻ M
 stepT (E ▻ unwrap M refl) = extEC E unwrap- ▻ M
-stepT (E ▻ constr e Tss p z)  with Vec.lookup Tss e in eq  
-stepT (E ▻ constr e Tss p []) | [] = E ◅ V-constr e Tss (sym eq) refl [] refl
-stepT (E ▻ constr e Tss refl (x ∷ xs)) | a ∷ as = 
-        extEC E (constr- e Tss (sym eq) {start} [] xs) ▻  x
+stepT (E ▻ constr e Tss p []) = E ◅ V-constr e Tss p refl [] refl
+stepT (E ▻ constr e Tss p (x ∷ xs)) = extEC E (constr- e Tss p {start} [] xs) ▻ x
 stepT (E ▻ case M cases) = extEC E (case- cases) ▻ M
 stepT (E ▻ con c refl) = E ◅ V-con c
 stepT (E ▻ (builtin b / refl)) = E ◅ ival b

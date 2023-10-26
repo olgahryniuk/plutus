@@ -12,6 +12,7 @@ module Algorithmic.BehaviouralEquivalence.ReductionvsCC where
 
 ```
 open import Data.Nat using (suc;zero)
+open import Data.Fin using (Fin)
 open import Relation.Binary.PropositionalEquality using (_≡_;refl;subst;inspect;cong;sym;trans) 
                                                   renaming ([_] to I[_])
 open import Data.Sum using (_⊎_;inj₁;inj₂)
@@ -28,7 +29,7 @@ open import Type using (Ctx⋆;∅;_,⋆_;_⊢⋆_)
 open _⊢⋆_
 open import Type.BetaNormal using (_⊢Nf⋆_)
 open _⊢Nf⋆_
-open import Algorithmic using (Ctx;_⊢_;constr-cong')
+open import Algorithmic using (Ctx;_⊢_;constr-cong;constr-cong';_∷_;lookupCase)
 open Ctx
 open _⊢_
 open import Algorithmic.Signature using (_[_]SigTy)
@@ -103,54 +104,6 @@ compEC' E (constr i Tss p {idx} vs cs E')
                              = compEC' (extEC E (constr- i Tss p {idx} vs cs)) E'
 compEC' E (case cs E')       = compEC' (extEC E (case- cs)) E'
 
--- extEC' : ∀{A B C}(F : Frame A B)(E : EC B C) → EC A C
--- extEC' (-· x) E = E l· x
--- extEC' (-·v x) E = E l· deval x
--- extEC' (x ·-) E = x ·r E
--- extEC' (-·⋆ A) E = E ·⋆ A / refl
--- extEC' wrap- E = wrap E
--- extEC' unwrap- E = unwrap E / refl
--- extEC' (constr- i Tss p {idx} vs cs) E = constr i Tss p {idx} vs cs E
--- extEC' (case- x) E = case x E
-
-
--- lemma-compEC-[] : ∀{A B}(E : EC A B) → compEC E [] ≡ E
--- lemma-compEC-[] E = {!   !}
-
-
--- lemma-compEC-ext : ∀{A B C D}(E : EC D C)(F : Frame C B)(E' : EC B A) → compEC (extEC E F) E' ≡ compEC E (extEC' F E')
--- lemma-compEC-ext [] F E' = {!   !}
--- lemma-compEC-ext (E l· t) F E' = {!   !}
--- lemma-compEC-ext (x ·r E) F E' = {!   !}
--- lemma-compEC-ext (E ·⋆ A / x) F E' = {!   !}
--- lemma-compEC-ext (wrap E) F E' = {!   !}
--- lemma-compEC-ext (unwrap E / x) F E' = {!   !}
--- lemma-compEC-ext (constr i Tss x x₁ x₂ E) F E' = {!   !}
--- lemma-compEC-ext (case x E) F E' = {!   !}
-
--- compEC-assoc : ∀{A B C D}(E : EC D C)(E' : EC C B)(E'' : EC B A) → compEC' E (compEC E' E'') ≡ compEC E (compEC E' E'')
-
--- compEC-eq : ∀{A B C}(E : EC C B)(E' : EC B A) → compEC' E E' ≡ compEC E E'
-
-
--- compEC-assoc E [] E'' = compEC-eq E E''
--- compEC-assoc E (E' l· t) E'' = trans (compEC-assoc (extEC E _) E' E'') (lemma-compEC-ext E _ _)
--- compEC-assoc E (x ·r E') E'' = trans (compEC-assoc (extEC E _) E' E'') (lemma-compEC-ext E _ _)
--- compEC-assoc E (E' ·⋆ A / refl) E'' = trans (compEC-assoc (extEC E _) E' E'') (lemma-compEC-ext E _ _)
--- compEC-assoc E (wrap E') E'' = trans (compEC-assoc (extEC E _) E' E'') (lemma-compEC-ext E _ _)
--- compEC-assoc E (unwrap E' / refl) E'' = trans (compEC-assoc (extEC E _) E' E'') (lemma-compEC-ext E _ _)
--- compEC-assoc E (constr i Tss x vs cs E') E'' = {!   !}
--- compEC-assoc E (case x E') E'' = trans (compEC-assoc (extEC E _) E' E'') (lemma-compEC-ext E _ _)
-
--- compEC-eq [] E' = {!   !}
--- compEC-eq (E l· t) E' = {!   !}
--- compEC-eq (x ·r E) E' = {!   !}
--- compEC-eq (E ·⋆ A / x) E' = {!   !}
--- compEC-eq (wrap E) E' = {!   !}
--- compEC-eq (unwrap E / x) E' = {!   !}
--- compEC-eq (constr i Tss x x₁ x₂ E) E' = {!   !}
--- compEC-eq (case x E) E' = {!   !}
-
 postulate
   compEC-eq : ∀{A B C}(E : EC C B)(E' : EC B A) → compEC E E' ≡ compEC' E E'
 
@@ -180,7 +133,6 @@ compEC'-extEC E (constr i Tss refl vs cs E') F =
     compEC'-extEC (extEC E (constr- i Tss refl vs cs)) E' F
 compEC'-extEC E (case cs E') F = 
     compEC'-extEC (extEC E (case- cs)) E' F
-
 
 extEC-[]ᴱ : ∀{A B C}(E : EC A B)(F : Frame B C)(M : ∅ ⊢ C) →
   extEC E F [ M ]ᴱ ≡ E [ F [ M ]ᶠ ]ᴱ
@@ -257,42 +209,46 @@ postulate lemV : ∀{A B}(M : ∅ ⊢ B)(V : Value M)(E : EC A B) → (E ▻ M) 
 -- lemV (M ·⋆ A / x₁) (V-IΠ b x) E = {!   !}
 -- lemV (builtin b₁ / x₁) (V-IΠ b x) E
 
-{-
--- v a brute force proof by pattern matching on builtins
-lemV .(ibuiltin addInteger)
-     (V-I⇒ addInteger (start .(Term ∷ Term ∷ [])) base)
-     E = step* refl base
-lemV .(ibuiltin addInteger · _)
-     (V-I⇒ addInteger (bubble (start .(Term ∷ Term ∷ [])))
-     (step .(start (Term ∷ Term ∷ [])) base v))
-     E = step*
-  refl
-  (step*
-    refl
-    (step* (cong (stepV _) (dissect-lemma E (-· deval v)))
-           (step**
-             (lemV (deval v) v (extEC E (_ ·-)))
-             (step* (cong (stepV v) (dissect-lemma E (_ ·-))) base))))
-lemV M (V-I⇒ addInteger {as' = as'} (bubble (bubble {as = as} p)) q) E
-  with <>>-cancel-both' as _ (([] ∷ Term) ∷ Term) (Term ∷ as') p refl
-... | X ,, () ,, Y'
--}
-
+lem62-constr-helper : ∀ {n} {Vs} {H} {Ts} 
+                        {i : Fin n} {Tss : Vec.Vec (List (∅ ⊢Nf⋆ *)) n}
+                        {tvs : IBwd (∅ ⊢_) Vs}
+                        ----
+                        {Xs} (tidx : Xs ≣ Vs <>> (H ∷ Ts))
+                        (p : Xs ≡ lookup Tss i)
+                        {vs : VList tvs}
+                        {cs : Algorithmic.ConstrArgs ∅ Ts}
+                        ---
+                        {Xs'} (tidx' : Xs' ≣ Vs <>> (H ∷ Ts))
+                        (p' : Xs' ≡ lookup Tss i)
+                        {vs' : VList tvs}
+                        {cs' : Algorithmic.ConstrArgs ∅ Ts}
+                        ---
+                        (pvs : vs ≡ vs')
+                        (pcs : cs ≡ cs')
+           →   constr- i Tss p  {tidx}  vs  cs 
+             ≡ constr- i Tss p' {tidx'} vs' cs' 
+lem62-constr-helper tidx p tidx' p' refl refl with (trans p (sym p')) 
+lem62-constr-helper tidx refl tidx' refl refl refl | refl with unique-≣-<>> tidx tidx' 
+... | refl = refl 
 
 lem62 : ∀{A B C}(L : ∅ ⊢ C)(E : EC A B)(E' : EC B C)
       → (E ▻ (E' [ L ]ᴱ)) -→s (compEC' E E' ▻ L)
 lem62 L E []          = base
 lem62 L E (E' l· M')  = step* refl (lem62 L (extEC E (-· M')) E')
 lem62 L E (VM ·r E')  = step* refl (step**
-  (lemV _ VM (extEC E (-· (E' [ L ]ᴱ))))
+  (lemV _ VM (extEC E (-· (E' [ L ]ᴱ)))) 
   (step* (cong (stepV VM) (dissect-lemma E (-· (E' [ L ]ᴱ))))
          (lem62 L (extEC E (VM ·-)) E')))
 lem62 L E (E' ·⋆ A / refl)   = step* refl (lem62 L (extEC E (-·⋆ A)) E')
 lem62 L E (wrap E')   = step* refl (lem62 L (extEC E wrap-) E')
 lem62 L E (unwrap E' / refl) = step* refl (lem62 L (extEC E unwrap-) E')
-lem62 L E (constr i Tss {Xs} p vs cs E') with Xs 
-... | [] = step* refl {!  !}
-... | x ∷ z = step* refl {!   !}
+lem62 L E (constr i Tss refl {tidx} [] cs E') = 
+    step* (cong (_▻ (E' [ L ]ᴱ)) (cong (extEC E) 
+           (lem62-constr-helper start (trans (sym (lem-≣-<>> tidx)) refl) tidx refl refl refl))) 
+          (lem62 L (extEC E (constr- i Tss refl [] cs)) E')
+lem62 L E (constr i Tss refl {tidx} {tvs} (vs :< V) cs E') = step* refl (step** 
+          {!   !}
+          (lem62 L (extEC E (constr- i Tss refl (vs :< V) cs)) E'))
 lem62 L E (case cs E') = step* refl (lem62 L (extEC E (case- cs)) E')
 
 {-# TERMINATING #-}
@@ -335,7 +291,8 @@ unwindVE A .(E' [ A ]ᴱ) E E' refl VM VN
   | inj₂ (_ ,, E'' ,, constr- i Tss p vs cs) rewrite (dissect-inj₂ E' E'' (constr- i Tss p vs cs) eq)
        = step* {!   !} {!   !}
 unwindVE .(constr e _ _ _) .(E' [ constr e _ _ _ ]ᴱ) E E' refl (V-constr e _ refl refl vs x) VN | inj₂ (_ ,, E'' ,, case- cs) 
-   rewrite (dissect-inj₂ E' E'' (case- cs) eq)= {!   !}
+   rewrite (dissect-inj₂ E' E'' (case- cs) eq) = 
+     ⊥-elim (valred (lemVE _ E'' (subst Value (extEC-[]ᴱ E'' (case- cs) (deval (V-constr e _ refl refl vs x))) VN)) (β-case e _ refl vs x cs))
 
 unwindE : ∀{A B C}(M : ∅ ⊢ A)(N : ∅ ⊢ B)(E : EC C B)(E' : EC B A)
       → N ≡ E' [ M ]ᴱ
@@ -515,7 +472,13 @@ lem-→s⋆ E (β-builtin b t bt u vu) = step*
            (step* (cong (stepV (V-I⇒ b bt)) (dissect-lemma E (-· u))) 
                   (step** (lemV u vu (extEC E (V-I⇒ b bt ·-))) 
                           (step* (cong (stepV vu) (dissect-lemma E (V-I⇒ b bt ·-))) base)))) 
-lem-→s⋆ E {case L cases} x = {!   !}
+lem-→s⋆ E (β-case e _ refl vs x cases) rewrite dissect-lemma E (case- cases) 
+  = step* 
+    refl 
+    (step** (lemV _ (V-constr e _ refl refl vs x) (extEC E (case- cases))) 
+            (step* {! extValueFrames E vs (Algorithmic.lemma-bwdfwdfunction' (Vec.lookup _ e)) ▻ lookupCase e cases              !} base))
+
+--  extValueFrames E vs (lemma-bwdfwdfunction' (Vec.lookup Tss e)) ▻ lookupCase e cases            
 {-
 lemmaF : ∀{A A' B B'}(M : ∅ ⊢ A)(F : Frame B A)(E : EC B' B)
       → ∀ (E' : EC B A')(L : ∅ ⊢ A')
@@ -696,11 +659,37 @@ thm1bV M (V-IΠ b x₁) M' E p N V (step* refl q) | inj₂ (_ ,, E' ,, -·⋆ A)
          q 
 ... | inj₂ (_ ,, E' ,, wrap-) rewrite dissect-inj₂ E E' wrap- eq = 
    thm1bV (wrap _ _ M) (V-wrap W) _ E' (trans p (extEC-[]ᴱ E' wrap- M)) N V q
-thm1bV .(wrap _ _ _) (V-wrap W) M' E p N V (step* refl q) | inj₂ (_ ,, E' ,, unwrap-)  rewrite dissect-inj₂ E E' unwrap- eq = 
+thm1bV _ (V-wrap W) M' E p N V (step* refl q) | inj₂ (_ ,, E' ,, unwrap-)  rewrite dissect-inj₂ E E' unwrap- eq = 
     trans—↠ (ruleEC E' (β-wrap W refl) (trans p (extEC-[]ᴱ E' unwrap- _)) refl) 
             (thm1b _ _ E' refl N V q)
-... | inj₂ (_ ,, E' ,, constr- i Tss x₁ x₂ x₃) = {!   !}
-... | inj₂ (_ ,, E' ,, case- x₁) = {!   !} 
+
+... | inj₂ (_ ,, E' ,, constr- {Vs = Vs} i Tss refl {tidx} {tvs} vs ts) = {! thm1bV-constr (lookup Tss i) vs ts (dissect-inj₂ E E' (constr- i Tss refl vs ts) eq)  !}
+  -- rewrite dissect-inj₂ E E' (constr- i Tss refl vs []) eq 
+  --  = thm1bV _ (V-constr i Tss refl (trans (sym (lemma<>2 Vs (_ ∷ []))) (cong ([] <><_) (sym (lem-≣-<>> tidx)))) (vs :< W) refl) 
+  --           M' E' 
+  --           (trans p 
+  --                  (trans (extEC-[]ᴱ E' (constr- i Tss refl vs []) M) 
+  --                         (cong (E' [_]ᴱ) (constr-cong' refl (sym (lem-≣-<>> tidx)) 
+  --                           (Utils.≡-subst-removable (IList (∅ ⊢_)) 
+  --                                                    (sym (lem-≣-<>> tidx)) 
+  --                                                    (lemma<>1' (Vs :< _) (lookup Tss i) (trans (sym (lemma<>2 Vs (_ ∷ []))) (cong ([] <><_) (sym (lem-≣-<>> tidx))))) 
+  --                                                    (tvs <>>I (M ∷ []))))))) 
+  --           N V {!  q !}
+--... | inj₂ (_ ,, E' ,, constr- i Tss refl {tidx} vs (c ∷ cs)) = {!   !}
+
+--     = thm1bV _ (V-constr i Tss refl {!   !} vs refl) 
+--             M' 
+--             E' 
+--             (trans p 
+--                   (trans (extEC-[]ᴱ E' (constr- i Tss refl vs cs) M) 
+--                         (cong (E' [_]ᴱ) (constr-cong' refl (sym (lem-≣-<>> tidx)) {!   !})))) 
+--              N 
+--              V 
+--              {! q  !}
+thm1bV _ (V-constr e _ refl refl vs refl) M' E p N V (step* refl q) | inj₂ (_ ,, E' ,, case- (c ∷ cs))
+     rewrite dissect-inj₂ E E' (case- (c ∷ cs)) eq
+     = trans—↠ (ruleEC E' (β-case e _ refl vs refl (c ∷ cs)) (trans p (extEC-[]ᴱ E' (case- (c ∷ cs)) _)) refl) 
+               (thm1b _ _  E' refl N V {! q  !})
 thm1bV M W M' E refl N V (step* refl q) | inj₁ refl 
     rewrite dissect-inj₁ E refl eq
     with box2box M N W V q
@@ -709,4 +698,4 @@ thm1bV M W M' E refl N V (step* refl q) | inj₁ refl
 thm2b : ∀{A}(M N : ∅ ⊢ A)(V : Value N) → ([] ▻ M) -→s (□ V) → M —↠ N
 thm2b M N V p = thm1b M M [] refl N V p
     
--- -}  
+-- -}   
