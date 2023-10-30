@@ -533,6 +533,7 @@ library plutus-ir
     PlutusIR.Compiler.Lower
     PlutusIR.Compiler.Recursion
     PlutusIR.Normalize
+    PlutusIR.Transform.RewriteRules.Seq
 
   build-depends:
     , algebraic-graphs     >=0.7
