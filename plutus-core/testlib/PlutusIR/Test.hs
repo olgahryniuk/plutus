@@ -25,7 +25,6 @@ import Control.Monad.Reader as Reader
 
 import PlutusCore qualified as PLC
 import PlutusCore.Builtin qualified as PLC
-import PlutusCore.Compiler qualified as PLC
 import PlutusCore.Pretty
 import PlutusCore.Pretty qualified as PLC
 import PlutusCore.Quote (runQuoteT)
@@ -76,9 +75,7 @@ instance
   ) =>
   ToUPlc (PIR.Program PIR.TyName PIR.Name uni fun a) uni fun
   where
-  toUPlc t = do
-    p' <- toTPlc t
-    pure $ PLC.runQuote $ flip runReaderT PLC.defaultCompilationOpts $ PLC.compileProgram p'
+  toUPlc = toTPlc >=> toUPlc
 
 pTermAsProg :: Parser (PIR.Program PIR.TyName PIR.Name PLC.DefaultUni PLC.DefaultFun PLC.SrcSpan)
 pTermAsProg = fmap (PIR.Program mempty PLC.latestVersion) pTerm
