@@ -128,9 +128,13 @@ renderLinearFunction (LinearFunction intercept slope) var =
                   else printf "%d*%s" s v
                   -- Print the slope even if it's zero, so we know the
                   -- function's not constant.
-              unparen v = if v /= "" && head v == '(' && last v == ')'
-                          then tail $ init v
+              unparen v = if v /= "" && headMaybe v == Just '(' && last v == ')'
+                          then drop 1 $ init v
                           else v
+
+              headMaybe :: [a] -> Maybe a
+              headMaybe []    = Nothing
+              headMaybe (x:_) = Just x
 
 renderModel :: Model -> [String]
 renderModel =
