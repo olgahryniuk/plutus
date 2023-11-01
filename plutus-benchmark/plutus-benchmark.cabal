@@ -94,23 +94,25 @@ library nofib-internal
   -- the plugin package as unused...
   ghc-options:     -Wno-unused-packages
   hs-source-dirs:  nofib/src
-  exposed-modules:
-    PlutusBenchmark.NoFib.Clausify
-    PlutusBenchmark.NoFib.Knights
-    PlutusBenchmark.NoFib.Knights.ChessSetList
-    PlutusBenchmark.NoFib.Knights.KnightHeuristic
-    PlutusBenchmark.NoFib.Knights.Queue
-    PlutusBenchmark.NoFib.Knights.Sort
-    PlutusBenchmark.NoFib.Knights.Utils
-    PlutusBenchmark.NoFib.LastPiece
-    PlutusBenchmark.NoFib.Prime
-    PlutusBenchmark.NoFib.Queens
+  exposed-modules: PlutusBenchmark.NoFib.Constitution
+
+  -- PlutusBenchmark.NoFib.Clausify
+  -- PlutusBenchmark.NoFib.Knights
+  -- PlutusBenchmark.NoFib.Knights.ChessSetList
+  -- PlutusBenchmark.NoFib.Knights.KnightHeuristic
+  -- PlutusBenchmark.NoFib.Knights.Queue
+  -- PlutusBenchmark.NoFib.Knights.Sort
+  -- PlutusBenchmark.NoFib.Knights.Utils
+  -- PlutusBenchmark.NoFib.LastPiece
+  -- PlutusBenchmark.NoFib.Prime
+  -- PlutusBenchmark.NoFib.Queens
 
   build-depends:
     , base                     >=4.9   && <5
     , deepseq
     , plutus-benchmark-common
     , plutus-core              ^>=1.15
+    , plutus-ledger-api
     , plutus-tx                ^>=1.15
     , plutus-tx-plugin         ^>=1.15
 
