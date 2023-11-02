@@ -5,6 +5,9 @@ let
         constrData
           0
           (mkCons {data} (constrData 0 (mkNilData unitval)) (mkNilData unitval))
+  !`$bSecondC` : integer -> data
+    = \(arg0_ : integer) ->
+        constrData 1 (mkCons {data} (iData arg0_) (mkNilData unitval))
   data Unit | Unit_match where
     Unit : Unit
   data Bool | Bool_match where
@@ -13,7 +16,7 @@ let
   data (Tuple2 :: * -> * -> *) a b | Tuple2_match where
     Tuple2 : a -> b -> Tuple2 a b
 in
-\(ds : (\a -> data) integer) ->
+\(ds : (\a -> data) data) ->
   Tuple2_match
     {integer}
     {list data}
@@ -34,24 +37,16 @@ in
          (equalsInteger 0 ds)
          (/\dead ->
             let
-              !ds : list data = tailList {data} ds
-              !a : integer = unIData (headList {data} ds)
-              !b : integer = unIData (headList {data} ds)
+              !b : integer = unIData (headList {data} (tailList {data} ds))
             in
             ifThenElse
               {all dead. data}
-              (equalsInteger 3 a)
+              (equalsData (headList {data} ds) (`$bSecondC` 42))
               (/\dead ->
                  ifThenElse
                    {all dead. data}
                    (equalsInteger 4 b)
-                   (/\dead ->
-                      constrData
-                        1
-                        (mkCons
-                           {data}
-                           (iData (addInteger a b))
-                           (mkNilData unitval)))
+                   (/\dead -> `$bSecondC` 147)
                    (/\dead -> fail ())
                    {all dead. dead})
               (/\dead -> fail ())

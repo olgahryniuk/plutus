@@ -1,0 +1,31 @@
+let
+  data (Solo :: * -> *) a | Solo_match where
+    Solo : a -> Solo a
+  data Bool | Bool_match where
+    True : Bool
+    False : Bool
+in
+\(inp : data) ->
+  addInteger
+    (let
+      !xx : pair integer (list data) = unConstrData inp
+      !ii : integer = fstPair {integer} {list data} xx
+      !ds : list data = sndPair {integer} {list data} xx
+    in
+    ifThenElse
+      {all dead. integer}
+      (equalsInteger 0 ii)
+      (/\dead -> unIData (headList {data} ds))
+      (/\dead -> error {integer})
+      {all dead. dead})
+    (let
+      !xx : pair integer (list data) = unConstrData inp
+      !ii : integer = fstPair {integer} {list data} xx
+      !ds : list data = sndPair {integer} {list data} xx
+    in
+    ifThenElse
+      {all dead. integer}
+      (equalsInteger 0 ii)
+      (/\dead -> unIData (headList {data} (tailList {data} ds)))
+      (/\dead -> error {integer})
+      {all dead. dead})

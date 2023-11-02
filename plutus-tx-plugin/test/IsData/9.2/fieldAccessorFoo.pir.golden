@@ -1,0 +1,84 @@
+let
+  data (Solo :: * -> *) a | Solo_match where
+    Solo : a -> Solo a
+  !addInteger : integer -> integer -> integer
+    = \(x : integer) (y : integer) -> addInteger x y
+  !`$mBar` :
+     all r.
+       data ->
+       (integer -> integer -> bytestring -> integer -> integer -> r) ->
+       (unit -> r) ->
+       r
+    = /\r ->
+        \(scrut : data)
+         (cont : integer -> integer -> bytestring -> integer -> integer -> r)
+         (fail : unit -> r) ->
+          let
+            !tup : pair integer (list data) = unConstrData scrut
+          in
+          ifThenElse
+            {all dead. r}
+            (equalsInteger 0 (fstPair {integer} {list data} tup))
+            (/\dead ->
+               let
+                 !l : list data = sndPair {integer} {list data} tup
+                 !l : list data = tailList {data} l
+                 !l : list data = tailList {data} l
+                 !l : list data = tailList {data} l
+               in
+               cont
+                 (unIData (headList {data} l))
+                 (unIData (headList {data} l))
+                 (unBData (headList {data} l))
+                 (unIData (headList {data} l))
+                 (unIData (headList {data} (tailList {data} l))))
+            (/\dead -> fail ())
+            {all dead. dead}
+  data Bool | Bool_match where
+    True : Bool
+    False : Bool
+in
+\(inp : data) ->
+  addInteger
+    (addInteger
+       (addInteger
+          (`$mBar`
+             {integer}
+             inp
+             (\(ds : integer)
+               (ds : integer)
+               (ds : bytestring)
+               (ds : integer)
+               (ds : integer) ->
+                ds)
+             (\(void : unit) -> error {integer}))
+          (`$mBar`
+             {integer}
+             inp
+             (\(ds : integer)
+               (ds : integer)
+               (ds : bytestring)
+               (ds : integer)
+               (ds : integer) ->
+                ds)
+             (\(void : unit) -> error {integer})))
+       (`$mBar`
+          {integer}
+          inp
+          (\(ds : integer)
+            (ds : integer)
+            (ds : bytestring)
+            (ds : integer)
+            (ds : integer) ->
+             ds)
+          (\(void : unit) -> error {integer})))
+    (`$mBar`
+       {integer}
+       inp
+       (\(ds : integer)
+         (ds : integer)
+         (ds : bytestring)
+         (ds : integer)
+         (ds : integer) ->
+          ds)
+       (\(void : unit) -> error {integer}))
